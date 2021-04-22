@@ -9,6 +9,10 @@ contract Tatum721 is ERC721Enumerable, ERC721URIStorage, AccessControlEnumerable
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
+    // mapping cashback to addresses and their values
+    mapping (uint256 => address[]) private _cashbacks;
+    mapping (uint256 => uint256[]) private _cashbacksValue;
+    
     constructor (string memory name_, string memory symbol_) ERC721(name_, symbol_) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MINTER_ROLE, _msgSender());
@@ -53,6 +57,33 @@ contract Tatum721 is ERC721Enumerable, ERC721URIStorage, AccessControlEnumerable
         return true;
     }
 
+    function mintWithCashback(address to, uint256 tokenId, string memory tokenURI, address[] memory authorAddresses, uint256[] memory cashbackValues) public returns (bool) {
+        require(hasRole(MINTER_ROLE, _msgSender()), "ERC721PresetMinterPauserAutoId: must have minter role to mint");
+        _mint(to, tokenId);
+        // saving cashback addresses and values
+        _cashbacks[tokenId] = authorAddresses;
+        _cashbacksValue[tokenId]=cashbackValues; 
+        return true; 
+    }
+    function transferWithCashback(address to, uint256 tokenId) public payable {
+        // checking cashback addresses exists and sum of cashbacks
+        require(_cashbacks[tokenId].length!=0, "CashbackToken should be of cashback type");
+        require(_cashbackBalance(tokenId) < msg.value, "Value should be greater than or equal to cashback value");
+        for (uint i=0;i<_cashbacks[tokenId].length;i++){
+            // transferring cashback to authors
+            payable(_cashbacks[tokenId][i]).transfer(_cashbacksValue[tokenId][i]);
+        }
+        safeTransferFrom(_msgSender(), to, tokenId, "");
+    }
+
+    function _cashbackBalance(uint256 tokenId) private view returns(uint256){
+        // returns the sum of cashbackValues
+        uint256 sum=0;
+        for (uint i=0;i<_cashbacksValue[tokenId].length;i++){
+            sum+=_cashbacksValue[tokenId][i];
+        }
+        return sum;
+    }
     function burn(uint256 tokenId) public virtual {
         //solhint-disable-next-line max-line-length
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721Burnable: caller is not owner nor approved");
@@ -60,6 +91,7 @@ contract Tatum721 is ERC721Enumerable, ERC721URIStorage, AccessControlEnumerable
     }
 
     function safeTransfer(address to, uint256 tokenId) public {
+        require(_cashbacks[tokenId].length==0, "CashbackToken should be of cashback type");
         safeTransferFrom(_msgSender(), to, tokenId, "");
     }
 }
