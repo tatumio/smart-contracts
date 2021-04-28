@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
@@ -10,9 +11,9 @@ contract Tatum721 is ERC721Enumerable, ERC721URIStorage, AccessControlEnumerable
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     // mapping cashback to addresses and their values
-    mapping (uint256 => address[]) private _cashbacks;
-    mapping (uint256 => uint256[]) private _cashbacksValue;
-    
+    mapping(uint256 => address[]) private _cashbacks;
+    mapping(uint256 => uint256[]) private _cashbacksValue;
+
     constructor (string memory name_, string memory symbol_) ERC721(name_, symbol_) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MINTER_ROLE, _msgSender());
@@ -63,40 +64,41 @@ contract Tatum721 is ERC721Enumerable, ERC721URIStorage, AccessControlEnumerable
         _setTokenURI(tokenId, tokenURI);
         // saving cashback addresses and values
         _cashbacks[tokenId] = authorAddresses;
-        _cashbacksValue[tokenId]=cashbackValues; 
-        return true; 
+        _cashbacksValue[tokenId] = cashbackValues;
+        return true;
     }
 
-    function _cashbackBalance(uint256 tokenId) private view returns(uint256){
+    function _cashbackBalance(uint256 tokenId) private view returns (uint256){
         // returns the sum of cashbackValues
-        uint256 sum=0;
-        for (uint i=0;i<_cashbacksValue[tokenId].length;i++){
-            sum+=_cashbacksValue[tokenId][i];
+        uint256 sum = 0;
+        for (uint i = 0; i < _cashbacksValue[tokenId].length; i++) {
+            sum += _cashbacksValue[tokenId][i];
         }
         return sum;
     }
+
     function burn(uint256 tokenId) public virtual {
         //solhint-disable-next-line max-line-length
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721Burnable: caller is not owner nor approved");
         _burn(tokenId);
     }
 
-    function safeTransfer(address to, uint256 tokenId) public payable{
-        if(_cashbacks[tokenId].length!=0){
+    function safeTransfer(address to, uint256 tokenId) public payable {
+        if (_cashbacks[tokenId].length != 0) {
             // checking cashback addresses exists and sum of cashbacks
-            require(_cashbacks[tokenId].length!=0, "CashbackToken should be of cashback type");
-            uint256 sum=_cashbackBalance(tokenId);
+            require(_cashbacks[tokenId].length != 0, "CashbackToken should be of cashback type");
+            uint256 sum = _cashbackBalance(tokenId);
             require(sum < msg.value, "Value should be greater than or equal to cashback value");
-            for (uint i=0;i<_cashbacks[tokenId].length;i++){
+            for (uint i = 0; i < _cashbacks[tokenId].length; i++) {
                 // transferring cashback to authors
                 payable(_cashbacks[tokenId][i]).transfer(_cashbacksValue[tokenId][i]);
             }
-            if(msg.value>sum){
-                payable(msg.sender).transfer(msg.value-sum);
+            if (msg.value > sum) {
+                payable(msg.sender).transfer(msg.value - sum);
             }
             _safeTransfer(_msgSender(), to, tokenId, "");
-        }else{
-            if(msg.value>0){
+        } else {
+            if (msg.value > 0) {
                 payable(msg.sender).transfer(msg.value);
             }
             _safeTransfer(_msgSender(), to, tokenId, "");
