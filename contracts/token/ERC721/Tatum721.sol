@@ -60,20 +60,11 @@ contract Tatum721 is ERC721Enumerable, ERC721URIStorage, AccessControlEnumerable
     function mintWithCashback(address to, uint256 tokenId, string memory tokenURI, address[] memory authorAddresses, uint256[] memory cashbackValues) public returns (bool) {
         require(hasRole(MINTER_ROLE, _msgSender()), "ERC721PresetMinterPauserAutoId: must have minter role to mint");
         _mint(to, tokenId);
+        _setTokenURI(tokenId, tokenURI);
         // saving cashback addresses and values
         _cashbacks[tokenId] = authorAddresses;
         _cashbacksValue[tokenId]=cashbackValues; 
         return true; 
-    }
-    function transferWithCashback(address to, uint256 tokenId) public payable {
-        // checking cashback addresses exists and sum of cashbacks
-        require(_cashbacks[tokenId].length!=0, "CashbackToken should be of cashback type");
-        require(_cashbackBalance(tokenId) < msg.value, "Value should be greater than or equal to cashback value");
-        for (uint i=0;i<_cashbacks[tokenId].length;i++){
-            // transferring cashback to authors
-            payable(_cashbacks[tokenId][i]).transfer(_cashbacksValue[tokenId][i]);
-        }
-        safeTransferFrom(_msgSender(), to, tokenId, "");
     }
 
     function _cashbackBalance(uint256 tokenId) private view returns(uint256){
@@ -90,8 +81,25 @@ contract Tatum721 is ERC721Enumerable, ERC721URIStorage, AccessControlEnumerable
         _burn(tokenId);
     }
 
-    function safeTransfer(address to, uint256 tokenId) public {
-        require(_cashbacks[tokenId].length==0, "CashbackToken should be of cashback type");
-        safeTransferFrom(_msgSender(), to, tokenId, "");
+    function safeTransfer(address to, uint256 tokenId) public payable{
+        if(_cashbacks[tokenId].length!=0){
+            // checking cashback addresses exists and sum of cashbacks
+            require(_cashbacks[tokenId].length!=0, "CashbackToken should be of cashback type");
+            uint256 sum=_cashbackBalance(tokenId);
+            require(sum < msg.value, "Value should be greater than or equal to cashback value");
+            for (uint i=0;i<_cashbacks[tokenId].length;i++){
+                // transferring cashback to authors
+                payable(_cashbacks[tokenId][i]).transfer(_cashbacksValue[tokenId][i]);
+            }
+            if(msg.value>sum){
+                payable(msg.sender).transfer(msg.value-sum);
+            }
+            _safeTransfer(_msgSender(), to, tokenId, "");
+        }else{
+            if(msg.value>0){
+                payable(msg.sender).transfer(msg.value);
+            }
+            _safeTransfer(_msgSender(), to, tokenId, "");
+        }
     }
 }
