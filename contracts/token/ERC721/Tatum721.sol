@@ -101,6 +101,5 @@ contract Tatum721 is ERC721Enumerable, ERC721URIStorage, AccessControlEnumerable
             }
             _safeTransfer(_msgSender(), to, tokenId, "");
         }
-        
     }
 }
