@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
@@ -16,9 +17,7 @@ contract Tatum721 is
     mapping(uint256 => address[]) private _cashbacks;
     mapping(uint256 => uint256[]) private _cashbacksValue;
 
-    constructor(string memory name_, string memory symbol_)
-        ERC721(name_, symbol_)
-    {
+    constructor (string memory name_, string memory symbol_) ERC721(name_, symbol_) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MINTER_ROLE, _msgSender());
     }
