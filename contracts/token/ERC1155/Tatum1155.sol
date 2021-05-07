@@ -154,9 +154,10 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     }
 
     /**
-     * @dev See {IERC1155-safeTransferCashback}.
+     * @dev See {IERC1155-safeTransfer}.
+     * Also sends cashback to authors if any
      */
-    function safeTransferCashback(
+    function safeTransfer(
         address from,
         address to,
         uint256 id,
@@ -213,9 +214,10 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     }
 
     /**
-     * @dev See {IERC1155-safeBatchTransferFrom}.
+     * @dev See {IERC1155-safeBatchTransfer}.
+     * Also sends cashback to authors if any
      */
-    function safeBatchTransferCashback(
+    function safeBatchTransfer(
         address from,
         address to,
         uint256[] memory ids,
