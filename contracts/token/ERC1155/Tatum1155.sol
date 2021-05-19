@@ -158,15 +158,13 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
      * Also sends cashback to authors if any
      */
     function safeTransfer(
-        address from,
         address to,
         uint256 id,
         uint256 amount,
         bytes memory data
     ) public payable {
         require(to != address(0), "ERC1155: transfer to the zero address");
-        require(from == _msgSender(), "ERC1155: caller is not owner");
-
+        address from = _msgSender();
         address operator = _msgSender();
 
         _beforeTokenTransfer(
@@ -194,10 +192,10 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
                 msg.value > sum,
                 "ERC1155: value must be greater than cashback values"
             );
-            for (uint256 i = 0; i < _cashbackRecipients[id].length; i++) {
+            for (uint256 j = 0; j < _cashbackRecipients[id].length; j++) {
                 // transferring cashback to authors
-                payable(_cashbackRecipients[id][i]).transfer(
-                    _cashbackValues[id][i]
+                payable(_cashbackRecipients[id][j]).transfer(
+                    _cashbackValues[id][j]
                 );
             }
             if (msg.value > sum) {
@@ -218,69 +216,53 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
      * Also sends cashback to authors if any
      */
     function safeBatchTransfer(
-        address from,
         address to,
         uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
+        uint256[] memory amounts
     ) public payable {
         require(
             ids.length == amounts.length,
             "ERC1155: ids and amounts length mismatch"
         );
         require(to != address(0), "ERC1155: transfer to the zero address");
-        require(from == _msgSender(), "ERC1155: transfer caller is not owner");
-
+        address from = _msgSender();
         address operator = _msgSender();
+        uint256 bal = msg.value;
+        //_beforeTokenTransfer(operator, from, to, ids, amounts, data);
 
-        _beforeTokenTransfer(operator, from, to, ids, amounts, data);
-
-        for (uint256 i = 0; i < ids.length; ++i) {
+        for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
             uint256 amount = amounts[i];
 
             uint256 fromBalance = _balances[id][from];
             require(
-                fromBalance >= amount,
+                fromBalance > amounts[i],
                 "ERC1155: insufficient balance for transfer"
             );
             _balances[id][from] = fromBalance - amount;
             _balances[id][to] += amount;
             if (_cashbackRecipients[id].length != 0) {
                 uint256 sum = 0;
-                for (uint256 i = 0; i < _cashbackValues[id].length; i++) {
-                    sum += _cashbackValues[id][i];
+                for (uint256 k = 0; k < _cashbackValues[id].length; k++) {
+                    sum += _cashbackValues[id][k];
                 }
                 require(
-                    msg.value > sum,
+                    bal > sum,
                     "ERC1155: value must be greater than cashback values"
                 );
-                for (uint256 j = 0; i < _cashbackRecipients[id].length; i++) {
+                for (uint256 j = 0; j < _cashbackRecipients[id].length; j++) {
                     // transferring cashback to authors
                     payable(_cashbackRecipients[id][j]).transfer(
                         _cashbackValues[id][j]
                     );
-                }
-                if (msg.value > sum) {
-                    payable(msg.sender).transfer(msg.value - sum);
-                }
-            } else {
-                if (msg.value > 0) {
-                    payable(msg.sender).transfer(msg.value);
+                    bal = bal - _cashbackValues[id][j];
                 }
             }
         }
-
+        if (bal > 0) {
+            payable(msg.sender).transfer(bal);
+        }
         emit TransferBatch(operator, from, to, ids, amounts);
-
-        _doSafeBatchTransferAcceptanceCheck(
-            operator,
-            from,
-            to,
-            ids,
-            amounts,
-            data
-        );
     }
 
     /**
@@ -447,13 +429,31 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
         _mint(account, id, amount, data);
     }
 
-    function mintBatch(
-        address to,
+    function burn(
+        address account,
+        uint256 id,
+        uint256 amount
+    ) public {
+        _burn(account, id, amount);
+    }
+
+    function burnBatch(
+        address account,
         uint256[] memory ids,
-        uint256[] memory amounts,
+        uint256[] memory amounts
+    ) public {
+        _burnBatch(account, ids, amounts);
+    }
+
+    function mintBatch(
+        address[] memory to,
+        uint256[][] memory ids,
+        uint256[][] memory amounts,
         bytes memory data
     ) public {
-        _mintBatch(to, ids, amounts, data);
+        for (uint256 i = 0; i < ids.length; i++) {
+            _mintBatch(to[i], ids[i], amounts[i], data);
+        }
     }
 
     function mintWithCashback(
@@ -472,16 +472,18 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
     function mintBatchWithCashback(
         address[] memory to,
-        uint256[] memory ids,
-        uint256[] memory amounts,
+        uint256[][] memory ids,
+        uint256[][] memory amounts,
         bytes memory data,
-        address[][] memory authorAddresses,
-        uint256[][] memory cashbackValues
+        address[][][] memory authorAddresses,
+        uint256[][][] memory cashbackValues
     ) public {
-        for (uint256 i = 0; i < to.length; i++) {
-            _mintBatch(to[i], ids, amounts, data);
-            _cashbackRecipients[ids[i]] = authorAddresses[i];
-            _cashbackValues[ids[i]] = cashbackValues[i];
+        for (uint256 i = 0; i < ids.length; i++) {
+            _mintBatch(to[i], ids[i], amounts[i], data);
+            for (uint256 j = 0; j < ids[i].length; j++) {
+                _cashbackRecipients[ids[i][j]] = authorAddresses[i][j];
+                _cashbackValues[ids[i][j]] = cashbackValues[i][j];
+            }
         }
     }
 
