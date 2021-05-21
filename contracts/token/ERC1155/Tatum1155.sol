@@ -9,14 +9,6 @@ import "../../utils/Address.sol";
 import "../../utils/Context.sol";
 import "../../utils/introspection/ERC165.sol";
 
-/**
- *
- * @dev Implementation of the basic standard multi-token.
- * See https://eips.ethereum.org/EIPS/eip-1155
- * Originally based on code by Enjin: https://github.com/enjin/erc-1155
- *
- * _Available since v3.1._
- */
 contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
     // Mapping cashbacks and values to tokens
@@ -54,16 +46,6 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
             super.supportsInterface(interfaceId);
     }
 
-    /**
-     * @dev See {IERC1155MetadataURI-uri}.
-     *
-     * This implementation returns the same URI for *all* token types. It relies
-     * on the token type ID substitution mechanism
-     * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in the EIP].
-     *
-     * Clients calling this function must replace the `\{id\}` substring with the
-     * actual token type ID.
-     */
     function uri(uint256)
         external
         view
@@ -189,7 +171,7 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
                 sum += _cashbackValues[id][i];
             }
             require(
-                msg.value > sum,
+                msg.value >= sum,
                 "ERC1155: value must be greater than cashback values"
             );
             for (uint256 j = 0; j < _cashbackRecipients[id].length; j++) {
@@ -236,20 +218,12 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
             uint256 fromBalance = _balances[id][from];
             require(
-                fromBalance > amounts[i],
+                fromBalance >= amounts[i],
                 "ERC1155: insufficient balance for transfer"
             );
             _balances[id][from] = fromBalance - amount;
             _balances[id][to] += amount;
             if (_cashbackRecipients[id].length != 0) {
-                uint256 sum = 0;
-                for (uint256 k = 0; k < _cashbackValues[id].length; k++) {
-                    sum += _cashbackValues[id][k];
-                }
-                require(
-                    bal > sum,
-                    "ERC1155: value must be greater than cashback values"
-                );
                 for (uint256 j = 0; j < _cashbackRecipients[id].length; j++) {
                     // transferring cashback to authors
                     payable(_cashbackRecipients[id][j]).transfer(
@@ -275,34 +249,6 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
         uint256 amount,
         bytes memory data
     ) public virtual override {
-        require(to != address(0), "ERC1155: transfer to the zero address");
-        require(
-            from == _msgSender() || isApprovedForAll(from, _msgSender()),
-            "ERC1155: caller is not owner nor approved"
-        );
-
-        address operator = _msgSender();
-
-        _beforeTokenTransfer(
-            operator,
-            from,
-            to,
-            _asSingletonArray(id),
-            _asSingletonArray(amount),
-            data
-        );
-
-        uint256 fromBalance = _balances[id][from];
-        require(
-            fromBalance >= amount,
-            "ERC1155: insufficient balance for transfer"
-        );
-        _balances[id][from] = fromBalance - amount;
-        _balances[id][to] += amount;
-
-        emit TransferSingle(operator, from, to, id, amount);
-
-        _doSafeTransferAcceptanceCheck(operator, from, to, id, amount, data);
     }
 
     /**
@@ -315,79 +261,12 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
         uint256[] memory amounts,
         bytes memory data
     ) public virtual override {
-        require(
-            ids.length == amounts.length,
-            "ERC1155: ids and amounts length mismatch"
-        );
-        require(to != address(0), "ERC1155: transfer to the zero address");
-        require(
-            from == _msgSender() || isApprovedForAll(from, _msgSender()),
-            "ERC1155: transfer caller is not owner nor approved"
-        );
-
-        address operator = _msgSender();
-
-        _beforeTokenTransfer(operator, from, to, ids, amounts, data);
-
-        for (uint256 i = 0; i < ids.length; ++i) {
-            uint256 id = ids[i];
-            uint256 amount = amounts[i];
-
-            uint256 fromBalance = _balances[id][from];
-            require(
-                fromBalance >= amount,
-                "ERC1155: insufficient balance for transfer"
-            );
-            _balances[id][from] = fromBalance - amount;
-            _balances[id][to] += amount;
-        }
-
-        emit TransferBatch(operator, from, to, ids, amounts);
-
-        _doSafeBatchTransferAcceptanceCheck(
-            operator,
-            from,
-            to,
-            ids,
-            amounts,
-            data
-        );
     }
 
-    /**
-     * @dev Sets a new URI for all token types, by relying on the token type ID
-     * substitution mechanism
-     * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in the EIP].
-     *
-     * By this mechanism, any occurrence of the `\{id\}` substring in either the
-     * URI or any of the amounts in the JSON file at said URI will be replaced by
-     * clients with the token type ID.
-     *
-     * For example, the `https://token-cdn-domain/\{id\}.json` URI would be
-     * interpreted by clients as
-     * `https://token-cdn-domain/000000000000000000000000000000000000000000000000000000000004cce0.json`
-     * for token type ID 0x4cce0.
-     *
-     * See {uri}.
-     *
-     * Because these URIs cannot be meaningfully represented by the {URI} event,
-     * this function emits no events.
-     */
     function _setURI(string memory newuri) internal virtual {
         _uri = newuri;
     }
 
-    /**
-     * @dev Creates `amount` tokens of token type `id`, and assigns them to `account`.
-     *
-     * Emits a {TransferSingle} event.
-     *
-     * Requirements:
-     *
-     * - `account` cannot be the zero address.
-     * - If `account` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155Received} and return the
-     * acceptance magic value.
-     */
     function _mint(
         address account,
         uint256 id,
@@ -524,15 +403,6 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
         return true;
     }
 
-    /**
-     * @dev xref:ROOT:erc1155.adoc#batch-operations[Batched] version of {_mint}.
-     *
-     * Requirements:
-     *
-     * - `ids` and `amounts` must have the same length.
-     * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
-     * acceptance magic value.
-     */
     function _mintBatch(
         address to,
         uint256[] memory ids,
@@ -565,14 +435,6 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
         );
     }
 
-    /**
-     * @dev Destroys `amount` tokens of token type `id` from `account`
-     *
-     * Requirements:
-     *
-     * - `account` cannot be the zero address.
-     * - `account` must have at least `amount` tokens of token type `id`.
-     */
     function _burn(
         address account,
         uint256 id,
@@ -601,13 +463,6 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
         emit TransferSingle(operator, account, address(0), id, amount);
     }
 
-    /**
-     * @dev xref:ROOT:erc1155.adoc#batch-operations[Batched] version of {_burn}.
-     *
-     * Requirements:
-     *
-     * - `ids` and `amounts` must have the same length.
-     */
     function _burnBatch(
         address account,
         uint256[] memory ids,
@@ -638,26 +493,6 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
         emit TransferBatch(operator, account, address(0), ids, amounts);
     }
 
-    /**
-     * @dev Hook that is called before any token transfer. This includes minting
-     * and burning, as well as batched variants.
-     *
-     * The same hook is called on both single and batched variants. For single
-     * transfers, the length of the `id` and `amount` arrays will be 1.
-     *
-     * Calling conditions (for each `id` and `amount` pair):
-     *
-     * - When `from` and `to` are both non-zero, `amount` of ``from``'s tokens
-     * of token type `id` will be  transferred to `to`.
-     * - When `from` is zero, `amount` tokens of token type `id` will be minted
-     * for `to`.
-     * - when `to` is zero, `amount` of ``from``'s tokens of token type `id`
-     * will be burned.
-     * - `from` and `to` are never both zero.
-     * - `ids` and `amounts` have the same, non-zero length.
-     *
-     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-     */
     function _beforeTokenTransfer(
         address operator,
         address from,
