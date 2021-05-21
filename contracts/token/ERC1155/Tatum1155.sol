@@ -108,31 +108,22 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     /**
      * @dev See {IERC1155-setApprovalForAll}.
      */
-    function setApprovalForAll(address operator, bool approved)
-        public
-        virtual
-        override
-    {
-        require(
-            _msgSender() != operator,
-            "ERC1155: setting approval status for self"
-        );
-
-        _operatorApprovals[_msgSender()][operator] = approved;
-        emit ApprovalForAll(_msgSender(), operator, approved);
+    function setApprovalForAll(address, bool) public virtual override {
+        require(false, "Not supported");
     }
 
     /**
      * @dev See {IERC1155-isApprovedForAll}.
      */
-    function isApprovedForAll(address account, address operator)
+    function isApprovedForAll(address, address)
         public
         view
         virtual
         override
         returns (bool)
     {
-        return _operatorApprovals[account][operator];
+        require(false, "Not supported");
+        return false;
     }
 
     /**
@@ -243,24 +234,26 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
      * @dev See {IERC1155-safeTransferFrom}.
      */
     function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        uint256 amount,
-        bytes memory data
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes memory
     ) public virtual override {
+        require(false, "Not supported");
     }
 
     /**
      * @dev See {IERC1155-safeBatchTransferFrom}.
      */
     function safeBatchTransferFrom(
-        address from,
-        address to,
-        uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
+        address,
+        address,
+        uint256[] memory,
+        uint256[] memory,
+        bytes memory
     ) public virtual override {
+        require(false, "Not supported");
     }
 
     function _setURI(string memory newuri) internal virtual {
