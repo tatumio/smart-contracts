@@ -11,6 +11,9 @@ import "../../utils/introspection/ERC165.sol";
 
 contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
+    // Mapping cashbacks and values to tokens
+    mapping(uint256 => address[]) private _cashbackRecipients;
+    mapping(uint256 => uint256[]) private _cashbackValues;
     // Mapping from token ID to account balances
     mapping(uint256 => mapping(address => uint256)) private _balances;
 
@@ -30,13 +33,26 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-        return interfaceId == type(IERC1155).interfaceId
-            || interfaceId == type(IERC1155MetadataURI).interfaceId
-            || super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC165, IERC165)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IERC1155).interfaceId ||
+            interfaceId == type(IERC1155MetadataURI).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
-    function uri(uint256) external view virtual override returns (string memory) {
+    function uri(uint256)
+        external
+        view
+        virtual
+        override
+        returns (string memory)
+    {
         return _uri;
     }
 
@@ -47,8 +63,17 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
      *
      * - `account` cannot be the zero address.
      */
-    function balanceOf(address account, uint256 id) public view virtual override returns (uint256) {
-        require(account != address(0), "ERC1155: balance query for the zero address");
+    function balanceOf(address account, uint256 id)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        require(
+            account != address(0),
+            "ERC1155: balance query for the zero address"
+        );
         return _balances[id][account];
     }
 
@@ -83,29 +108,34 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     /**
      * @dev See {IERC1155-setApprovalForAll}.
      */
-    function setApprovalForAll(address operator, bool approved) public virtual override {
-        require(_msgSender() != operator, "ERC1155: setting approval status for self");
-
-        _operatorApprovals[_msgSender()][operator] = approved;
-        emit ApprovalForAll(_msgSender(), operator, approved);
+    function setApprovalForAll(address, bool) public virtual override {
+        require(false, "Not supported");
     }
 
     /**
      * @dev See {IERC1155-isApprovedForAll}.
      */
-    function isApprovedForAll(address account, address operator) public view virtual override returns (bool) {
-        return _operatorApprovals[account][operator];
+    function isApprovedForAll(address, address)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        require(false, "Not supported");
+        return false;
     }
 
     /**
      * @dev See {IERC1155-safeTransfer}.
+     * Also sends cashback to authors if any
      */
     function safeTransfer(
         address to,
         uint256 id,
         uint256 amount,
         bytes memory data
-    ) public {
+    ) public payable {
         require(to != address(0), "ERC1155: transfer to the zero address");
         address from = _msgSender();
         address operator = _msgSender();
@@ -126,6 +156,29 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
         );
         _balances[id][from] = fromBalance - amount;
         _balances[id][to] += amount;
+        if (_cashbackRecipients[id].length != 0) {
+            uint256 sum = 0;
+            for (uint256 i = 0; i < _cashbackValues[id].length; i++) {
+                sum += _cashbackValues[id][i];
+            }
+            require(
+                msg.value >= sum,
+                "ERC1155: value must be greater than cashback values"
+            );
+            for (uint256 j = 0; j < _cashbackRecipients[id].length; j++) {
+                // transferring cashback to authors
+                payable(_cashbackRecipients[id][j]).transfer(
+                    _cashbackValues[id][j]
+                );
+            }
+            if (msg.value > sum) {
+                payable(msg.sender).transfer(msg.value - sum);
+            }
+        } else {
+            if (msg.value > 0) {
+                payable(msg.sender).transfer(msg.value);
+            }
+        }
         emit TransferSingle(operator, from, to, id, amount);
 
         _doSafeTransferAcceptanceCheck(operator, from, to, id, amount, data);
@@ -133,12 +186,13 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
     /**
      * @dev See {IERC1155-safeBatchTransfer}.
+     * Also sends cashback to authors if any
      */
     function safeBatchTransfer(
         address to,
         uint256[] memory ids,
         uint256[] memory amounts
-    ) public {
+    ) public payable {
         require(
             ids.length == amounts.length,
             "ERC1155: ids and amounts length mismatch"
@@ -146,6 +200,8 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
         require(to != address(0), "ERC1155: transfer to the zero address");
         address from = _msgSender();
         address operator = _msgSender();
+        uint256 bal = msg.value;
+        //_beforeTokenTransfer(operator, from, to, ids, amounts, data);
 
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
@@ -158,6 +214,18 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
             );
             _balances[id][from] = fromBalance - amount;
             _balances[id][to] += amount;
+            if (_cashbackRecipients[id].length != 0) {
+                for (uint256 j = 0; j < _cashbackRecipients[id].length; j++) {
+                    // transferring cashback to authors
+                    payable(_cashbackRecipients[id][j]).transfer(
+                        _cashbackValues[id][j]
+                    );
+                    bal = bal - _cashbackValues[id][j];
+                }
+            }
+        }
+        if (bal > 0) {
+            payable(msg.sender).transfer(bal);
         }
         emit TransferBatch(operator, from, to, ids, amounts);
     }
@@ -166,76 +234,27 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
      * @dev See {IERC1155-safeTransferFrom}.
      */
     function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        uint256 amount,
-        bytes memory data
-    )
-        public
-        virtual
-        override
-    {
-        require(to != address(0), "ERC1155: transfer to the zero address");
-        require(
-            from == _msgSender() || isApprovedForAll(from, _msgSender()),
-            "ERC1155: caller is not owner nor approved"
-        );
-
-        address operator = _msgSender();
-
-        _beforeTokenTransfer(operator, from, to, _asSingletonArray(id), _asSingletonArray(amount), data);
-
-        uint256 fromBalance = _balances[id][from];
-        require(fromBalance >= amount, "ERC1155: insufficient balance for transfer");
-        _balances[id][from] = fromBalance - amount;
-        _balances[id][to] += amount;
-
-        emit TransferSingle(operator, from, to, id, amount);
-
-        _doSafeTransferAcceptanceCheck(operator, from, to, id, amount, data);
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes memory
+    ) public virtual override {
+        require(false, "Not supported");
     }
 
     /**
      * @dev See {IERC1155-safeBatchTransferFrom}.
      */
     function safeBatchTransferFrom(
-        address from,
-        address to,
-        uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
-    )
-        public
-        virtual
-        override
-    {
-        require(ids.length == amounts.length, "ERC1155: ids and amounts length mismatch");
-        require(to != address(0), "ERC1155: transfer to the zero address");
-        require(
-            from == _msgSender() || isApprovedForAll(from, _msgSender()),
-            "ERC1155: transfer caller is not owner nor approved"
-        );
-
-        address operator = _msgSender();
-
-        _beforeTokenTransfer(operator, from, to, ids, amounts, data);
-
-        for (uint256 i = 0; i < ids.length; ++i) {
-            uint256 id = ids[i];
-            uint256 amount = amounts[i];
-
-            uint256 fromBalance = _balances[id][from];
-            require(fromBalance >= amount, "ERC1155: insufficient balance for transfer");
-            _balances[id][from] = fromBalance - amount;
-            _balances[id][to] += amount;
-        }
-
-        emit TransferBatch(operator, from, to, ids, amounts);
-
-        _doSafeBatchTransferAcceptanceCheck(operator, from, to, ids, amounts, data);
+        address,
+        address,
+        uint256[] memory,
+        uint256[] memory,
+        bytes memory
+    ) public virtual override {
+        require(false, "Not supported");
     }
-
 
     function _setURI(string memory newuri) internal virtual {
         _uri = newuri;
@@ -285,19 +304,17 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     function burn(
         address account,
         uint256 id,
-        uint256 amount,
-        bytes memory data
+        uint256 amount
     ) public {
-        _burn(account, id, amount,data);
+        _burn(account, id, amount);
     }
 
     function burnBatch(
         address account,
         uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
+        uint256[] memory amounts
     ) public {
-        _burnBatch(account, ids, amounts,data);
+        _burnBatch(account, ids, amounts);
     }
 
     function mintBatch(
@@ -310,6 +327,75 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
             _mintBatch(to[i], ids[i], amounts[i], data);
         }
     }
+
+    function mintWithCashback(
+        address account,
+        uint256 id,
+        uint256 amount,
+        bytes memory data,
+        address[] memory authorAddresses,
+        uint256[] memory cashbackValues
+    ) public {
+        // saving cashback addresses and values
+        _cashbackRecipients[id] = authorAddresses;
+        _cashbackValues[id] = cashbackValues;
+        _mint(account, id, amount, data);
+    }
+
+    function mintBatchWithCashback(
+        address[] memory to,
+        uint256[][] memory ids,
+        uint256[][] memory amounts,
+        bytes memory data,
+        address[][][] memory authorAddresses,
+        uint256[][][] memory cashbackValues
+    ) public {
+        for (uint256 i = 0; i < ids.length; i++) {
+            _mintBatch(to[i], ids[i], amounts[i], data);
+            for (uint256 j = 0; j < ids[i].length; j++) {
+                _cashbackRecipients[ids[i][j]] = authorAddresses[i][j];
+                _cashbackValues[ids[i][j]] = cashbackValues[i][j];
+            }
+        }
+    }
+
+    /**
+     * Fetch cashback values and recipients for a token id, returns array
+     */
+    function tokenCashbackValues(uint256 tokenId)
+        public
+        view
+        virtual
+        returns (uint256[] memory)
+    {
+        return _cashbackValues[tokenId];
+    }
+
+    function tokenCashbackRecipients(uint256 tokenId)
+        public
+        view
+        virtual
+        returns (address[] memory)
+    {
+        return _cashbackRecipients[tokenId];
+    }
+
+    /**
+     * To update the cashback values of an existing author, returns bool
+     */
+    function updateCashbackForAuthor(uint256 tokenId, uint256 cashbackValue)
+        public
+        returns (bool)
+    {
+        for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
+            if (_cashbackRecipients[tokenId][i] == _msgSender()) {
+                _cashbackValues[tokenId][i] = cashbackValue;
+                return true;
+            }
+        }
+        return true;
+    }
+
     function _mintBatch(
         address to,
         uint256[] memory ids,
@@ -345,8 +431,7 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     function _burn(
         address account,
         uint256 id,
-        uint256 amount,
-        bytes memory data
+        uint256 amount
     ) internal virtual {
         require(account != address(0), "ERC1155: burn from the zero address");
 
@@ -358,7 +443,7 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
             address(0),
             _asSingletonArray(id),
             _asSingletonArray(amount),
-            data
+            ""
         );
 
         uint256 accountBalance = _balances[id][account];
@@ -374,8 +459,7 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     function _burnBatch(
         address account,
         uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
+        uint256[] memory amounts
     ) internal virtual {
         require(account != address(0), "ERC1155: burn from the zero address");
         require(
@@ -385,7 +469,7 @@ contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
         address operator = _msgSender();
 
-        _beforeTokenTransfer(operator, account, address(0), ids, amounts, data);
+        _beforeTokenTransfer(operator, account, address(0), ids, amounts, "");
 
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
