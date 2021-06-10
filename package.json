@@ -11,6 +11,7 @@
     "openzeppelin-contracts-migrate-imports": "scripts/migrate-imports.js"
   },
   "scripts": {
+    "build-contracts": "sol-merger \"./contracts/**/*Tatum*.sol\" ./build",
     "compile": "hardhat compile",
     "coverage": "hardhat coverage",
     "docs": "oz-docs",
@@ -48,6 +49,7 @@
   },
   "homepage": "https://openzeppelin.com/contracts/",
   "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-solhint": "^2.0.0",
     "@nomiclabs/hardhat-truffle5": "^2.0.0",
     "@nomiclabs/hardhat-web3": "^2.0.0",
@@ -64,6 +66,7 @@
     "eth-sig-util": "^3.0.0",
     "ethereumjs-util": "^7.0.7",
     "ethereumjs-wallet": "^1.0.1",
+    "ethers": "^5.3.0",
     "hardhat": "^2.0.6",
     "hardhat-gas-reporter": "^1.0.4",
     "lodash.startcase": "^4.4.0",
@@ -71,6 +74,7 @@
     "micromatch": "^4.0.2",
     "mocha": "^8.0.1",
     "rimraf": "^3.0.2",
+    "sol-merger": "^3.1.0",
     "solhint": "^3.2.0",
     "solidity-coverage": "^0.7.11",
     "solidity-docgen": "^0.5.3",
