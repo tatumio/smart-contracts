@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import "./IERC1155.sol";
-import "./IERC1155Receiver.sol";
-import "./extensions/IERC1155MetadataURI.sol";
-import "../../utils/Address.sol";
-import "../../utils/Context.sol";
-import "../../utils/introspection/ERC165.sol";
+import "../token/ERC1155/IERC1155.sol";
+import "../token/ERC1155/IERC1155Receiver.sol";
+import "../token/ERC1155/extensions/IERC1155MetadataURI.sol";
+import "../utils/Address.sol";
+import "../utils/Context.sol";
+import "../utils/introspection/ERC165.sol";
 
 contract Tatum1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;

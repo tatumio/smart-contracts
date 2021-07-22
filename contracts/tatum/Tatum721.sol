@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./extensions/ERC721Enumerable.sol";
-import "./extensions/ERC721URIStorage.sol";
-import "../../access/AccessControlEnumerable.sol";
+import "../token/ERC721/extensions/ERC721Enumerable.sol";
+import "../token/ERC721/extensions/ERC721URIStorage.sol";
+import "../access/AccessControlEnumerable.sol";
 
 contract Tatum721 is
 ERC721Enumerable,

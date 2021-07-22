@@ -4,7 +4,7 @@
 
 **Tatum made some small changes to ERC-20 and ERC-721 contracts and modified by their needs.**
 
- * ERC-721 deployed by Tatum is [Tatum721.sol](./contracts/token/ERC721/Tatum721.sol)  
+ * ERC-721 deployed by Tatum is [Tatum721.sol](contracts/tatum/Tatum721.sol)  
 
 **A library for secure smart contract development.** Build on a solid foundation of community-vetted code.
 

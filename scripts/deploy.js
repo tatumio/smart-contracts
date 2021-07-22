@@ -1,10 +1,10 @@
 async function main() {
   // We get the contract to deploy
-  const ProassetzToken = await ethers.getContractFactory("ProassetzToken");
-  console.log("Deploying ProassetzToken...");
-  const box = await ProassetzToken.deploy();
+  const CustodialFullTokenWalletWithBatch = await ethers.getContractFactory("CustodialFullTokenWalletWithBatch");
+  console.log("Deploying CustodialFullTokenWalletWithBatch...");
+  const box = await CustodialFullTokenWalletWithBatch.deploy();
   await box.deployed();
-  console.log("ProassetzToken deployed to:", box.address);
+  console.log("CustodialFullTokenWalletWithBatch deployed to:", box.address);
 }
 
 main()

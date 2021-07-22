@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./presets/ERC1155PresetMinterPauser.sol";
+import "../token/ERC1155/presets/ERC1155PresetMinterPauser.sol";
 
 contract Tatum1155 is ERC1155PresetMinterPauser {
 
