@@ -8,6 +8,10 @@ import "../../token/ERC721/IERC721.sol";
 
 contract Custodial_721_1155_TokenWallet is Ownable {
 
+    function onERC721Received(address, address, uint256, bytes memory) public virtual returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+
     function onERC1155Received(address, address, uint256, uint256, bytes memory) public virtual returns (bytes4) {
         return this.onERC1155Received.selector;
     }
@@ -24,7 +28,7 @@ contract Custodial_721_1155_TokenWallet is Ownable {
         @param tokenAddress - address of the asset to own, if transferring native asset, use 0x0000000 address
         @param contractType - type of asset
                                 - 1 - ERC721
-                                - 2 - ERC1155  
+                                - 2 - ERC1155
                                 - 3 - native asset
         @param recipient - recipient of the transaction
         @param amount - amount to be transferred in the asset based of the contractType, for ERC721 not important

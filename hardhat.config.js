@@ -70,4 +70,7 @@ module.exports = {
     currency: 'USD',
     outputFile: process.env.CI ? 'gas-report.txt' : undefined,
   },
+  mocha: {
+    fgrep: 'Marketplace'
+  }
 };

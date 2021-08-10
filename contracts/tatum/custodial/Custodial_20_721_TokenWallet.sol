@@ -11,6 +11,9 @@ contract Custodial_20_721_TokenWallet is Ownable {
     receive() external payable {
     }
 
+    function onERC721Received(address, address, uint256, bytes memory) public virtual returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
     /**
         Function transfer assets owned by this wallet to the recipient. Transfer only 1 type of asset.
         @param tokenAddress - address of the asset to own, if transferring native asset, use 0x0000000 address

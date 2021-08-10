@@ -9,6 +9,10 @@ import "../../token/ERC721/IERC721.sol";
 
 contract CustodialFullTokenWallet is Ownable {
 
+    function onERC721Received(address, address, uint256, bytes memory) public virtual returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+
     function onERC1155Received(address, address, uint256, uint256, bytes memory) public virtual returns (bytes4) {
         return this.onERC1155Received.selector;
     }
@@ -26,7 +30,7 @@ contract CustodialFullTokenWallet is Ownable {
         @param contractType - type of asset
                                 - 0 - ERC20
                                 - 1 - ERC721
-                                - 2 - ERC1155  
+                                - 2 - ERC1155
                                 - 3 - native asset
         @param recipient - recipient of the transaction
         @param amount - amount to be transferred in the asset based of the contractType, for ERC721 not important

@@ -8,6 +8,10 @@ import "../../token/ERC721/IERC721.sol";
 
 contract Custodial_721_TokenWallet is Ownable {
 
+    function onERC721Received(address, address, uint256, bytes memory) public virtual returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+
     receive() external payable {
     }
 

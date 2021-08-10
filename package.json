@@ -11,7 +11,7 @@
     "openzeppelin-contracts-migrate-imports": "scripts/migrate-imports.js"
   },
   "scripts": {
-    "build-contracts": "sol-merger \"./contracts/**/*Custodial*.sol\" ./build",
+    "build-contracts": "sol-merger \"./contracts/tatum/**/*.sol\" ./build",
     "compile": "hardhat compile",
     "coverage": "hardhat coverage",
     "docs": "oz-docs",
