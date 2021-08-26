@@ -10,6 +10,7 @@ module.exports = {
     },
     mocha: {
         fgrep: '[skip-on-coverage]',
+        grep: 'Marketplace|Auction',
         invert: true,
     },
 }

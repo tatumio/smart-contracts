@@ -13,7 +13,7 @@
   "scripts": {
     "build-contracts": "sol-merger \"./contracts/tatum/**/*.sol\" ./build",
     "compile": "hardhat compile",
-    "coverage": "hardhat coverage",
+    "coverage": "hardhat coverage --testfiles 'test/token/tatum/**'",
     "docs": "oz-docs",
     "docs:watch": "npm run docs watch contracts 'docs/*.hbs'",
     "prepare-docs": "scripts/prepare-docs.sh",

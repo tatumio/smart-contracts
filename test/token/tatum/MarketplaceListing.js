@@ -1,4 +1,4 @@
-const {BN, constants, expectEvent, expectRevert, balance} = require('@openzeppelin/test-helpers');
+const {BN, constants, expectEvent, balance} = require('@openzeppelin/test-helpers');
 const {expect} = require('chai');
 const {BigNumber} = require("ethers");
 const {ZERO_ADDRESS} = constants;
@@ -112,7 +112,6 @@ contract('MarketplaceListing', function (accounts) {
             expectEvent(b, 'ListingSold', {
                 buyer,
             })
-            expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
             expect((await erc20.balanceOf(seller)).toString()).to.be.equal('10000')
             expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('100')
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
@@ -279,7 +278,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(listings[0]).to.be.equal('1');
             expect(listings[2]).to.be.equal('0');
 
-            const b = await marketplace.cancelListing('1', {from: seller});
+            const b = await marketplace.cancelListing('1');
             listings = await marketplace.getListing('1');
 
             expect(listings[2]).to.be.equal('2');
@@ -314,7 +313,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(listings[2]).to.be.equal('0');
 
             try {
-                const b = await marketplace.cancelListing('1', {from: buyer});
+                await marketplace.cancelListing('1', {from: buyer});
                 fail('Should not pass')
             } catch (e) {
             }

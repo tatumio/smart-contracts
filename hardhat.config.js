@@ -71,6 +71,6 @@ module.exports = {
     outputFile: process.env.CI ? 'gas-report.txt' : undefined,
   },
   mocha: {
-    fgrep: 'Marketplace'
+    grep: 'Marketplace|NftAuction'
   }
 };
