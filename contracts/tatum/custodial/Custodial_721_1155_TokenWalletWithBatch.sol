@@ -74,4 +74,23 @@ contract Custodial_721_1155_TokenWalletWithBatch is Ownable {
             }
         }
     }
+
+    /**
+        Function approves the transfer of assets owned by this wallet to the spender. Approve only 1 type of asset.
+        @param tokenAddress - address of the asset to approve
+        @param contractType - type of asset
+                                - 1 - ERC721
+                                - 2 - ERC1155
+        @param spender - who will be able to spend the assets on behalf of the user
+        @param tokenId - tokenId to transfer, valid only for ERC721 and ERC1155
+    **/
+    function approve(address tokenAddress, uint256 contractType, address spender, uint256, uint256 tokenId) public virtual {
+        if (contractType == 1) {
+            IERC721(tokenAddress).approve(spender, tokenId);
+        } else if (contractType == 2) {
+            IERC1155(tokenAddress).setApprovalForAll(spender, true);
+        } else {
+            revert("Unsupported contract type");
+        }
+    }
 }

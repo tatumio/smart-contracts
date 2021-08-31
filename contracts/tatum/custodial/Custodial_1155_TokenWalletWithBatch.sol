@@ -22,7 +22,7 @@ contract Custodial_1155_TokenWalletWithBatch is Ownable {
         Function transfer assets owned by this wallet to the recipient. Transfer only 1 type of asset.
         @param tokenAddress - address of the asset to own, if transferring native asset, use 0x0000000 address
         @param contractType - type of asset
-                                - 2 - ERC1155  
+                                - 2 - ERC1155
                                 - 3 - native asset
         @param recipient - recipient of the transaction
         @param amount - amount to be transferred in the asset based of the contractType
@@ -42,7 +42,7 @@ contract Custodial_1155_TokenWalletWithBatch is Ownable {
         Function transfer assets owned by this wallet to the recipient. Transfer any number of assets.
         @param tokenAddress - address of the asset to own, if transferring native asset, use 0x0000000 address
         @param contractType - type of asset
-                                - 2 - ERC1155  
+                                - 2 - ERC1155
                                 - 3 - native asset
         @param recipient - recipient of the transaction
         @param amount - amount to be transferred in the asset based of the contractType
@@ -61,6 +61,21 @@ contract Custodial_1155_TokenWalletWithBatch is Ownable {
             } else {
                 revert("Unsupported contract type");
             }
+        }
+    }
+
+    /**
+        Function approves the transfer of assets owned by this wallet to the spender. Approve only 1 type of asset.
+        @param tokenAddress - address of the asset to approve
+        @param contractType - type of asset
+                                - 2 - ERC1155
+        @param spender - who will be able to spend the assets on behalf of the user
+    **/
+    function approve(address tokenAddress, uint256 contractType, address spender, uint256, uint256) public virtual {
+        if (contractType == 2) {
+            IERC1155(tokenAddress).setApprovalForAll(spender, true);
+        } else {
+            revert("Unsupported contract type");
         }
     }
 }

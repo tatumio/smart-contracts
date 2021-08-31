@@ -181,7 +181,7 @@ contract NftAuction is Ownable, Pausable {
     /**
     * @dev Buyer wants to buy NFT from auction. All the required checks must pass.
     * Buyer must either send ETH with this endpoint, or ERC20 tokens will be deducted from his account to the auction contract.
-    * Contract must detect, if the bidder bid higher value then the actual highest bid. If it's not enough, bid is not valid.
+    * Contract must detect, if the bidder bid higher value thank the actual highest bid. If it's not enough, bid is not valid.
     * If bid is the highest one, previous bidders assets will be released back to him - we are aware of reentrancy attacks, but we will cover that.
     * Bid must be processed only during the validity of the auction, otherwise it's not accepted.
     * @param id - id of the auction to buy
@@ -191,7 +191,7 @@ contract NftAuction is Ownable, Pausable {
         Auction memory auction = _auctions[id];
         uint256 bidWithoutFee = bidValue / (10000 + _auctionFee) * 10000;
         require(auction.endedAt > block.number, "Auction has already ended. Unable to process bid. Aborting.");
-        require(auction.endingPrice < bidWithoutFee, "Bid free of the auction fee is lower then actual highest bid price. Aborting.");
+        require(auction.endingPrice < bidWithoutFee, "Bid free of the auction fee is lower thank actual highest bid price. Aborting.");
         if (auction.erc20Address == address(0)) {
             require(bidValue == msg.value, "Wrong amount entered for the bid. Aborting.");
         }
@@ -251,7 +251,7 @@ contract NftAuction is Ownable, Pausable {
     function cancelAuction(string memory id) public virtual payable {
         Auction memory auction = _auctions[id];
         require(auction.seller != address(0), "Auction is already settled. Aborting.");
-        require(auction.seller == msg.sender || msg.sender == owner(), "Auction can't be cancelled from other then seller or owner. Aborting.");
+        require(auction.seller == msg.sender || msg.sender == owner(), "Auction can't be cancelled from other thank seller or owner. Aborting.");
         bool isErc721 = auction.isErc721;
         address nftAddress = auction.nftAddress;
         uint256 amount = auction.amount;

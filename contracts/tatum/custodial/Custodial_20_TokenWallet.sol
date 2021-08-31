@@ -28,4 +28,20 @@ contract Custodial_20_TokenWallet is Ownable {
             revert("Unsupported contract type");
         }
     }
+
+    /**
+        Function approves the transfer of assets owned by this wallet to the spender. Approve only 1 type of asset.
+        @param tokenAddress - address of the asset to approve
+        @param contractType - type of asset
+                                - 0 - ERC20
+        @param spender - who will be able to spend the assets on behalf of the user
+        @param amount - amount to be approved to spend in the asset based of the contractType
+    **/
+    function approve(address tokenAddress, uint256 contractType, address spender, uint256 amount, uint256) public virtual {
+        if (contractType == 0) {
+            IERC20(tokenAddress).approve(spender, amount);
+        } else {
+            revert("Unsupported contract type");
+        }
+    }
 }
