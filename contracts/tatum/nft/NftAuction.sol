@@ -39,6 +39,8 @@ contract NftAuction is Ownable, Pausable {
     // List of all auctions id => auction.
     mapping(string => Auction) private _auctions;
 
+    uint256 private _auctionCount = 0;
+
     // in percents, what's the fee for the auction house, 1% - 100, 100% - 10000, range 1-10000 means 0.01% - 100%
     uint256 private _auctionFee;
     // recipient of the auction fee
@@ -97,6 +99,7 @@ contract NftAuction is Ownable, Pausable {
     }
 
     function setAuctionFee(uint256 fee) public virtual onlyOwner {
+        require(_auctionCount == 0, "Fee can't be changed if there is ongoing auction.");
         _auctionFee = fee;
     }
 
@@ -173,6 +176,7 @@ contract NftAuction is Ownable, Pausable {
         // transfer the tokens to the auction house
         _escrowTokensToSell(isErc721, nftAddress, seller, tokenId, amount);
 
+        _auctionCount++;
         Auction memory auction = Auction(seller, nftAddress, tokenId, isErc721, endedAt, block.number, erc20Address, amount, 0, address(0));
         _auctions[id] = auction;
         emit AuctionCreated(id, isErc721, nftAddress, tokenId, amount, erc20Address, endedAt);
@@ -241,6 +245,7 @@ contract NftAuction is Ownable, Pausable {
         _transferNFT(isErc721, nftAddress, bidder, tokenId, amount);
         _transferAssets(erc20Address, endingPrice, auction.seller, true);
 
+        _auctionCount--;
         emit AuctionSettled(id);
     }
 
@@ -272,6 +277,7 @@ contract NftAuction is Ownable, Pausable {
             _transferAssets(erc20Address, endingPrice, bidder, false);
         }
 
+        _auctionCount--;
         emit AuctionCancelled(id);
     }
 }

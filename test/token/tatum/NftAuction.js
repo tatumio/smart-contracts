@@ -39,6 +39,12 @@ contract('NftAuction', function (accounts) {
 
             const c = await auction.createAuction('1', true, nftAddress, tokenId, seller, 1, endedAt, ZERO_ADDRESS)
 
+            try {
+                await auction.setAuctionFee(fee);
+                fail('Should not update fee when auction is present')
+            } catch (_) {
+            }
+
             expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
             expectEvent(c, 'AuctionCreated', {
                 isErc721: true,
