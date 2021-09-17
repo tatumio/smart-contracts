@@ -40,17 +40,17 @@ contract MarketplaceListing is Ownable {
     /**
     * @dev Emitted when new listing is created by the owner of the contract. Amount is valid only for ERC-1155 tokens
     */
-    event ListingCreated(string indexed listingId, bool indexed isErc721, address indexed nftAddress, uint256 tokenId, uint256 amount, uint256 price, address erc20Address);
+    event ListingCreated(bool indexed isErc721, address indexed nftAddress, uint256 indexed tokenId, string listingId, uint256 amount, uint256 price, address erc20Address);
 
     /**
     * @dev Emitted when listing assets were sold.
     */
-    event ListingSold(string indexed listingId, address indexed buyer);
+    event ListingSold(address indexed buyer, string listingId);
 
     /**
     * @dev Emitted when listing was cancelled and assets were returned to the seller.
     */
-    event ListingCancelled(string indexed listingId);
+    event ListingCancelled(string listingId);
 
     receive() external payable {
     }
@@ -114,7 +114,7 @@ contract MarketplaceListing is Ownable {
         }
         Listing memory listing = Listing(listingId, isErc721, State.INITIATED, nftAddress, seller, erc20Address, tokenId, amount, price, address(0));
         _listings[listingId] = listing;
-        emit ListingCreated(listingId, isErc721, nftAddress, tokenId, amount, price, erc20Address);
+        emit ListingCreated(isErc721, nftAddress, tokenId, listingId, amount, price, erc20Address);
     }
 
     /**
@@ -188,7 +188,7 @@ contract MarketplaceListing is Ownable {
         } else {
             IERC1155(listing.nftAddress).safeTransferFrom(address(this), msg.sender, listing.tokenId, listing.amount, "");
         }
-        emit ListingSold(listingId, msg.sender);
+        emit ListingSold(msg.sender, listingId);
     }
 
     /**

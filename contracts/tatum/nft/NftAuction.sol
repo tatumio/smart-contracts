@@ -49,17 +49,17 @@ contract NftAuction is Ownable, Pausable {
     /**
     * @dev Emitted when new auction is created by the owner of the contract. Amount is valid only for ERC-1155 tokens
     */
-    event AuctionCreated(string indexed id, bool indexed isErc721, address indexed nftAddress, uint256 tokenId, uint256 amount, address erc20Address, uint256 endedAt);
+    event AuctionCreated(bool indexed isErc721, address indexed nftAddress, uint256 indexed tokenId, string id, uint256 amount, address erc20Address, uint256 endedAt);
 
     /**
     * @dev Emitted when auction assets were bid.
     */
-    event AuctionBid(string indexed id, address indexed buyer, uint256 indexed amount);
+    event AuctionBid(address indexed buyer, uint256 indexed amount, string id);
 
     /**
     * @dev Emitted when auction is settled.
     */
-    event AuctionSettled(string indexed id);
+    event AuctionSettled(string id);
 
     /**
     * @dev Emitted when auction was cancelled and assets were returned to the seller.
@@ -179,7 +179,7 @@ contract NftAuction is Ownable, Pausable {
         _auctionCount++;
         Auction memory auction = Auction(seller, nftAddress, tokenId, isErc721, endedAt, block.number, erc20Address, amount, 0, address(0));
         _auctions[id] = auction;
-        emit AuctionCreated(id, isErc721, nftAddress, tokenId, amount, erc20Address, endedAt);
+        emit AuctionCreated(isErc721, nftAddress, tokenId, id, amount, erc20Address, endedAt);
     }
 
     /**
@@ -218,7 +218,7 @@ contract NftAuction is Ownable, Pausable {
         newAuction.bidder = msg.sender;
 
         _auctions[id] = newAuction;
-        emit AuctionBid(id, msg.sender, bidWithoutFee);
+        emit AuctionBid(msg.sender, bidWithoutFee, id);
     }
 
     /**

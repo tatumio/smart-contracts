@@ -36,6 +36,7 @@ contract('MarketplaceListing', function (accounts) {
             const c = await marketplace.createListing('1', true, nftAddress, tokenId, 10000, seller, 1, ZERO_ADDRESS)
 
             expectEvent(c, 'ListingCreated', {
+                listingId: '1',
                 isErc721: true,
                 nftAddress,
                 tokenId,
