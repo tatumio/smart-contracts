@@ -7,28 +7,47 @@ import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
 
 contract Tatum721Provenance is
-ERC721Enumerable,
-ERC721URIStorage,
-AccessControlEnumerable
+    ERC721Enumerable,
+    ERC721URIStorage,
+    AccessControlEnumerable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    mapping (uint256 => TokenData[]) private _tokenData;
+    mapping(uint256 => TokenData[]) private _tokenData;
+    mapping(uint256 => address[]) private _cashbackRecipients;
+    mapping(uint256 => uint256[]) private _cashbackValues;
+
     struct TokenData {
         string data;
         uint256 value;
     }
-    event TransferWithProvenance(uint256 indexed id, address owner,string data, uint256 value);
-    constructor (string memory name_, string memory symbol_) ERC721(name_, symbol_) {
+    event TransferWithProvenance(
+        uint256 indexed id,
+        address owner,
+        string data,
+        uint256 value
+    );
+
+    constructor(string memory name_, string memory symbol_)
+        ERC721(name_, symbol_)
+    {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MINTER_ROLE, _msgSender());
     }
 
-    function _setTokenData(uint256 tokenId, string memory tokenData,uint256 value) internal virtual {
-        require(_exists(tokenId), "ERC721URIStorage: URI set of nonexistent token");
-        TokenData memory tokendata=TokenData(tokenData,value);
+    function _setTokenData(
+        uint256 tokenId,
+        string memory tokenData,
+        uint256 value
+    ) internal virtual {
+        require(
+            _exists(tokenId),
+            "ERC721URIStorage: URI set of nonexistent token"
+        );
+        TokenData memory tokendata = TokenData(tokenData, value);
         _tokenData[tokenId].push(tokendata);
     }
+
     /**
      * @dev Function to mint tokens.
      * @param to The address that will receive the minted tokens.
@@ -36,6 +55,26 @@ AccessControlEnumerable
      * @param uri The token URI of the minted token.
      * @return A boolean that indicates if the operation was successful.
      */
+
+    function mintWithCashback(
+        address to,
+        uint256 tokenId,
+        string memory uri,
+        address[] memory recipientAddresses,
+        uint256[] memory cashbackValues
+    ) public returns (bool) {
+        require(
+            hasRole(MINTER_ROLE, _msgSender()),
+            "ERC721PresetMinterPauserAutoId: must have minter role to mint"
+        );
+        _mint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+        // saving cashback addresses and values
+        _cashbackRecipients[tokenId] = recipientAddresses;
+        _cashbackValues[tokenId] = cashbackValues;
+        return true;
+    }
+
     function mintWithTokenURI(
         address to,
         uint256 tokenId,
@@ -51,25 +90,38 @@ AccessControlEnumerable
     }
 
     function supportsInterface(bytes4 interfaceId)
-    public view virtual override(AccessControlEnumerable, ERC721, ERC721Enumerable)
-    returns (bool)
+        public
+        view
+        virtual
+        override(AccessControlEnumerable, ERC721, ERC721Enumerable)
+        returns (bool)
     {
         return super.supportsInterface(interfaceId);
     }
 
     function tokenURI(uint256 tokenId)
-    public view virtual override(ERC721, ERC721URIStorage) returns (string memory)
+        public
+        view
+        virtual
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
     {
         return ERC721URIStorage.tokenURI(tokenId);
     }
+
     function gettokenData(uint256 tokenId)
-    public view virtual returns (TokenData[] memory)
+        public
+        view
+        virtual
+        returns (TokenData[] memory)
     {
         return _tokenData[tokenId];
     }
-    function caller()public view virtual returns (address){
+
+    function caller() public view virtual returns (address) {
         return _msgSender();
     }
+
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -79,26 +131,44 @@ AccessControlEnumerable
     }
 
     function _burn(uint256 tokenId)
-    internal virtual override(ERC721, ERC721URIStorage)
+        internal
+        virtual
+        override(ERC721, ERC721URIStorage)
     {
         return ERC721URIStorage._burn(tokenId);
     }
 
-    function mintMultiple(
-        address[] memory to,
-        uint256[] memory tokenId,
-        string[] memory uri
-    ) public returns (bool) {
-        require(
-            hasRole(MINTER_ROLE, _msgSender()),
-            "ERC721PresetMinterPauserAutoId: must have minter role to mint"
-        );
-        for (uint256 i = 0; i < to.length; i++) {
-            _mint(to[i], tokenId[i]);
-            _setTokenURI(tokenId[i], uri[i]);
+    function tokenCashbackValues(uint256 tokenId)
+        public
+        view
+        virtual
+        returns (uint256[] memory)
+    {
+        return _cashbackValues[tokenId];
+    }
+
+    function tokenCashbackRecipients(uint256 tokenId)
+        public
+        view
+        virtual
+        returns (address[] memory)
+    {
+        return _cashbackRecipients[tokenId];
+    }
+
+    function updateCashbackForAuthor(uint256 tokenId, uint256 cashbackValue)
+        public
+        returns (bool)
+    {
+        for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
+            if (_cashbackRecipients[tokenId][i] == _msgSender()) {
+                _cashbackValues[tokenId][i] = cashbackValue;
+                return true;
+            }
         }
         return true;
     }
+
     function burn(uint256 tokenId) public virtual {
         //solhint-disable-next-line max-line-length
         require(
@@ -108,11 +178,46 @@ AccessControlEnumerable
         _burn(tokenId);
     }
 
-    function safeTransfer(address to, uint256 tokenId,string memory data, uint256 value) public { 
-            bytes memory bytesData =bytes(data);
+    function safeTransfer(
+        address to,
+        uint256 tokenId,
+        string memory data,
+        uint256 value
+    ) public payable {
+        bytes memory bytesData = bytes(data);
+        if (_cashbackRecipients[tokenId].length != 0) {
+            // checking cashback addresses exists and sum of cashbacks
+            require(
+                _cashbackRecipients[tokenId].length != 0,
+                "CashbackToken should be of cashback type"
+            );
+            uint256 percentSum = 0;
+            for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
+                percentSum += _cashbackValues[tokenId][i];
+            }
+            uint256 sum = (percentSum * value) / 100;
+            if (sum > msg.value) {
+                payable(msg.sender).transfer(msg.value);
+                revert(
+                    "Value should be greater than or equal to cashback value"
+                );
+            }
+            for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
+                // transferring cashback to authors
+                if (_cashbackValues[tokenId][i] > 0) {
+                    payable(_cashbackRecipients[tokenId][i]).transfer(
+                        (_cashbackValues[tokenId][i] * value) / 100
+                    );
+                }
+            }
+            if (msg.value > sum) {
+                payable(msg.sender).transfer(msg.value - sum);
+            }
             _safeTransfer(_msgSender(), to, tokenId, bytesData);
-            _setTokenData(tokenId, data,value);     
-            emit TransferWithProvenance(tokenId, _msgSender(), data, value);   
+        } else {
+            _safeTransfer(_msgSender(), to, tokenId, bytesData);
+            _setTokenData(tokenId, data, value);
+        }
+        emit TransferWithProvenance(tokenId, to, data, value);
     }
-
 }
