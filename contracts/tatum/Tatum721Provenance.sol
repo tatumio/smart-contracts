@@ -13,19 +13,14 @@ contract Tatum721Provenance is
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    mapping(uint256 => TokenData[]) private _tokenData;
+    mapping(uint256 => string[]) private _tokenData;
     mapping(uint256 => address[]) private _cashbackRecipients;
     mapping(uint256 => uint256[]) private _cashbackValues;
 
-    struct TokenData {
-        string data;
-        uint256 value;
-    }
     event TransferWithProvenance(
         uint256 indexed id,
         address owner,
-        string data,
-        uint256 value
+        string data
     );
 
     constructor(string memory name_, string memory symbol_)
@@ -37,15 +32,13 @@ contract Tatum721Provenance is
 
     function _setTokenData(
         uint256 tokenId,
-        string memory tokenData,
-        uint256 value
+        string memory tokenData
     ) internal virtual {
         require(
             _exists(tokenId),
             "ERC721URIStorage: URI set of nonexistent token"
         );
-        TokenData memory tokendata = TokenData(tokenData, value);
-        _tokenData[tokenId].push(tokendata);
+        _tokenData[tokenId].push(tokenData);
     }
 
     /**
@@ -109,11 +102,11 @@ contract Tatum721Provenance is
         return ERC721URIStorage.tokenURI(tokenId);
     }
 
-    function gettokenData(uint256 tokenId)
+    function getTokenData(uint256 tokenId)
         public
         view
         virtual
-        returns (TokenData[] memory)
+        returns (string[] memory)
     {
         return _tokenData[tokenId];
     }
@@ -177,14 +170,31 @@ contract Tatum721Provenance is
         );
         _burn(tokenId);
     }
-
+    function uintToString(uint v) private pure returns (string memory) {
+        uint maxlength = 100;
+        bytes memory reversed = new bytes(maxlength);
+        uint i = 0;
+        while (v != 0) {
+            uint remainder = v % 10;
+            v = v / 10;
+            reversed[i++] = bytes1(uint8(48 + remainder));
+        }
+        bytes memory s = new bytes(i); // i + 1 is inefficient
+        for (uint j = 0; j < i; j++) {
+            s[j] = reversed[i - j - 1]; // to avoid the off-by-one error
+        }
+        string memory str = string(s);  // memory isn't implicitly convertible to storage
+        return str;
+    }
     function safeTransfer(
         address to,
         uint256 tokenId,
         string memory data,
         uint256 value
     ) public payable {
-        bytes memory bytesData = bytes(data);
+        string memory dataValue=uintToString(value);
+        bytes memory bytesData=abi.encodePacked(data,"'''####'''",dataValue);
+        
         if (_cashbackRecipients[tokenId].length != 0) {
             // checking cashback addresses exists and sum of cashbacks
             require(
@@ -216,8 +226,8 @@ contract Tatum721Provenance is
             _safeTransfer(_msgSender(), to, tokenId, bytesData);
         } else {
             _safeTransfer(_msgSender(), to, tokenId, bytesData);
-            _setTokenData(tokenId, data, value);
         }
-        emit TransferWithProvenance(tokenId, to, data, value);
+        _setTokenData(tokenId,string(bytesData));
+        emit TransferWithProvenance(tokenId, to, string(bytesData));
     }
 }
