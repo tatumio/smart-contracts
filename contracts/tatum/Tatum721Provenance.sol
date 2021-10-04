@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
+import "../utils/Stringutils.sol";
 import "../token/ERC721/extensions/ERC721Enumerable.sol";
 import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
@@ -11,6 +12,7 @@ contract Tatum721Provenance is
     ERC721URIStorage,
     AccessControlEnumerable
 {
+    using strings for *;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     mapping(uint256 => string[]) private _tokenData;
@@ -30,7 +32,7 @@ contract Tatum721Provenance is
         _setupRole(MINTER_ROLE, _msgSender());
     }
 
-    function _setTokenData(
+    function _appendTokenData(
         uint256 tokenId,
         string memory tokenData
     ) internal virtual {
@@ -153,7 +155,7 @@ contract Tatum721Provenance is
         public
         returns (bool)
     {
-        for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
+        for (uint256 i; i < _cashbackValues[tokenId].length; i++) {
             if (_cashbackRecipients[tokenId][i] == _msgSender()) {
                 _cashbackValues[tokenId][i] = cashbackValue;
                 return true;
@@ -170,30 +172,39 @@ contract Tatum721Provenance is
         );
         _burn(tokenId);
     }
-    function uintToString(uint v) private pure returns (string memory) {
-        uint maxlength = 100;
-        bytes memory reversed = new bytes(maxlength);
-        uint i = 0;
-        while (v != 0) {
-            uint remainder = v % 10;
-            v = v / 10;
-            reversed[i++] = bytes1(uint8(48 + remainder));
+    
+    // function checkData(string memory data)public pure returns (uint){
+    //     strings.slice memory s = data.toSlice();    
+    //     strings.slice memory delim = "'''###'''".toSlice();                            
+    //     string[] memory parts = new string[](s.count(delim)+1);                  
+    //     parts[0]=s.split(delim).toString();
+    //     parts[1]=s.rsplit(delim).toString();
+    //     return _stringToUint(parts[1]);
+        
+    // }
+    function _stringToUint(string memory s) internal pure returns (uint result) {
+        bytes memory b = bytes(s);
+        uint i;
+        result = 0;
+        for (i = 0; i < b.length; i++) {
+            uint c = uint(uint8(b[i]));
+            if (c >= 48 && c <= 57) {
+                result = result * 10 + (c - 48);
+            }
         }
-        bytes memory s = new bytes(i); // i + 1 is inefficient
-        for (uint j = 0; j < i; j++) {
-            s[j] = reversed[i - j - 1]; // to avoid the off-by-one error
-        }
-        string memory str = string(s);  // memory isn't implicitly convertible to storage
-        return str;
     }
     function safeTransfer(
         address to,
         uint256 tokenId,
-        string memory data,
-        uint256 value
+        string memory data
     ) public payable {
-        string memory dataValue=uintToString(value);
-        bytes memory bytesData=abi.encodePacked(data,"'''####'''",dataValue);
+        strings.slice memory s = data.toSlice();    
+        strings.slice memory delim = "'''###'''".toSlice();                            
+        string[] memory parts = new string[](s.count(delim)+1);                  
+        parts[0]=s.split(delim).toString();
+        parts[1]=s.rsplit(delim).toString();
+        uint value =_stringToUint(parts[1]);
+        bytes memory bytesData=abi.encodePacked(data);
         
         if (_cashbackRecipients[tokenId].length != 0) {
             // checking cashback addresses exists and sum of cashbacks
@@ -227,7 +238,7 @@ contract Tatum721Provenance is
         } else {
             _safeTransfer(_msgSender(), to, tokenId, bytesData);
         }
-        _setTokenData(tokenId,string(bytesData));
+        _appendTokenData(tokenId,string(bytesData));
         emit TransferWithProvenance(tokenId, to, string(bytesData));
     }
 }
