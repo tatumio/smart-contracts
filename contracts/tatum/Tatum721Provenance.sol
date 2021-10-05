@@ -2,19 +2,34 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "../utils/Stringutils.sol";
+//import "../utils/Stringutils.sol";
 import "../token/ERC721/extensions/ERC721Enumerable.sol";
 import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
 
+abstract contract Stringsutils {
+        struct Slice {
+            uint _len;
+            uint _ptr;
+        }
+        function toSlice(string memory self) external virtual pure returns (Slice memory);
+        function toString(Slice memory self) external virtual pure returns (string memory);
+        function count(Slice memory self, Slice memory needle) external virtual pure returns (uint cnt);
+        function split(Slice memory self, Slice memory needle) external virtual pure returns (Slice memory token);
+        function rsplit(Slice memory self, Slice memory needle) external virtual pure returns (Slice memory token);
+}
 contract Tatum721Provenance is
     ERC721Enumerable,
     ERC721URIStorage,
     AccessControlEnumerable
 {
-    using strings for *;
+    Stringsutils str= Stringsutils(0xb9a3a1183b8e62139C14a06E8474c26C5c4eEcD8);
+    
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-
+    struct Slice {
+            uint _len;
+            uint _ptr;
+        }
     mapping(uint256 => string[]) private _tokenData;
     mapping(uint256 => address[]) private _cashbackRecipients;
     mapping(uint256 => uint256[]) private _cashbackValues;
@@ -173,15 +188,17 @@ contract Tatum721Provenance is
         _burn(tokenId);
     }
     
-    // function checkData(string memory data)public pure returns (uint){
-    //     strings.slice memory s = data.toSlice();    
-    //     strings.slice memory delim = "'''###'''".toSlice();                            
-    //     string[] memory parts = new string[](s.count(delim)+1);                  
-    //     parts[0]=s.split(delim).toString();
-    //     parts[1]=s.rsplit(delim).toString();
-    //     return _stringToUint(parts[1]);
-        
-    // }
+    function checkData(string memory data)public view returns (string[] memory){
+        Stringsutils.Slice memory s = str.toSlice(data);    
+        Stringsutils.Slice memory delim = str.toSlice("'''###'''");     
+        // // Stringsutils.Slice memory token;
+        // string[] memory parts = new string[](s.count(delim)+1);      
+        string[] memory parts = new string[](str.count(s,delim)+1);      
+        // parts[0]=str.toString(str.split(s,delim));
+        // parts[1]=str.toString(str.rsplit(s,delim));
+        //return _stringToUint(parts[1]);
+        return parts;
+    }
     function _stringToUint(string memory s) internal pure returns (uint result) {
         bytes memory b = bytes(s);
         uint i;
@@ -193,52 +210,54 @@ contract Tatum721Provenance is
             }
         }
     }
-    function safeTransfer(
-        address to,
-        uint256 tokenId,
-        string memory data
-    ) public payable {
-        strings.slice memory s = data.toSlice();    
-        strings.slice memory delim = "'''###'''".toSlice();                            
-        string[] memory parts = new string[](s.count(delim)+1);                  
-        parts[0]=s.split(delim).toString();
-        parts[1]=s.rsplit(delim).toString();
-        uint value =_stringToUint(parts[1]);
-        bytes memory bytesData=abi.encodePacked(data);
+    // function safeTransfer(
+    //     address to,
+    //     uint256 tokenId,
+    //     string memory data
+    // ) public payable {
+    //     Stringsutils.Slice memory s = str.toSlice(data);    
+    //     Stringsutils.Slice memory delim = str.toSlice("'''###'''");     
+    //     Stringsutils.Slice memory token;
+    //     // string[] memory parts = new string[](s.count(delim)+1);      
+    //     string[] memory parts = new string[](str.count(s,delim)+1);      
+    //     parts[0]=str.toString(str.split(s,delim,token));
+    //     parts[1]=str.toString(str.rsplit(s,delim,token));
+    //     uint value =_stringToUint(parts[1]);
+    //     bytes memory bytesData=abi.encodePacked(data);
         
-        if (_cashbackRecipients[tokenId].length != 0) {
-            // checking cashback addresses exists and sum of cashbacks
-            require(
-                _cashbackRecipients[tokenId].length != 0,
-                "CashbackToken should be of cashback type"
-            );
-            uint256 percentSum = 0;
-            for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
-                percentSum += _cashbackValues[tokenId][i];
-            }
-            uint256 sum = (percentSum * value) / 100;
-            if (sum > msg.value) {
-                payable(msg.sender).transfer(msg.value);
-                revert(
-                    "Value should be greater than or equal to cashback value"
-                );
-            }
-            for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
-                // transferring cashback to authors
-                if (_cashbackValues[tokenId][i] > 0) {
-                    payable(_cashbackRecipients[tokenId][i]).transfer(
-                        (_cashbackValues[tokenId][i] * value) / 100
-                    );
-                }
-            }
-            if (msg.value > sum) {
-                payable(msg.sender).transfer(msg.value - sum);
-            }
-            _safeTransfer(_msgSender(), to, tokenId, bytesData);
-        } else {
-            _safeTransfer(_msgSender(), to, tokenId, bytesData);
-        }
-        _appendTokenData(tokenId,string(bytesData));
-        emit TransferWithProvenance(tokenId, to, string(bytesData));
-    }
+    //     if (_cashbackRecipients[tokenId].length != 0) {
+    //         // checking cashback addresses exists and sum of cashbacks
+    //         require(
+    //             _cashbackRecipients[tokenId].length != 0,
+    //             "CashbackToken should be of cashback type"
+    //         );
+    //         uint256 percentSum = 0;
+    //         for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
+    //             percentSum += _cashbackValues[tokenId][i];
+    //         }
+    //         uint256 sum = (percentSum * value) / 100;
+    //         if (sum > msg.value) {
+    //             payable(msg.sender).transfer(msg.value);
+    //             revert(
+    //                 "Value should be greater than or equal to cashback value"
+    //             );
+    //         }
+    //         for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
+    //             // transferring cashback to authors
+    //             if (_cashbackValues[tokenId][i] > 0) {
+    //                 payable(_cashbackRecipients[tokenId][i]).transfer(
+    //                     (_cashbackValues[tokenId][i] * value) / 100
+    //                 );
+    //             }
+    //         }
+    //         if (msg.value > sum) {
+    //             payable(msg.sender).transfer(msg.value - sum);
+    //         }
+    //         _safeTransfer(_msgSender(), to, tokenId, bytesData);
+    //     } else {
+    //         _safeTransfer(_msgSender(), to, tokenId, bytesData);
+    //     }
+    //     _appendTokenData(tokenId,string(bytesData));
+    //     emit TransferWithProvenance(tokenId, to, string(bytesData));
+    // }
 }
