@@ -202,7 +202,7 @@ contract Tatum721Provenance is
             for (uint256 i; i < _cashbackRecipients[tokenId].length; i++) {
                 // transferring cashback to authors
                 // require(_cashbackValues[tokenId][i] > 0);
-                uint cbvalue=(_cashbackValues[tokenId][i]* value) / 100;
+                uint cbvalue=(_cashbackValues[tokenId][i]* value) / 1000000;
                 if ( cbvalue>=_fixedValues[tokenId][i]) {
                     payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
                 }else if(cbvalue<_fixedValues[tokenId][i]){
