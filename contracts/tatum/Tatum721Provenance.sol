@@ -21,7 +21,8 @@ contract Tatum721Provenance is
     event TransferWithProvenance(
         uint256 indexed id,
         address owner,
-        string data
+        string data,
+        uint value
     );
 
     constructor(string memory name_, string memory symbol_)
@@ -42,14 +43,14 @@ contract Tatum721Provenance is
         _tokenData[tokenId].push(tokenData);
     }
 
-    function mintWithCashback(
+    function mintWithTokenURI(
         address to,
         uint256 tokenId,
         string memory uri,
         address[] memory recipientAddresses,
         uint256[] memory cashbackValues,
         uint256[] memory fValues
-    ) public returns (bool) {
+    ) public {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
             "ERC721PresetMinterPauserAutoId: must have minter role to mint"
@@ -57,24 +58,34 @@ contract Tatum721Provenance is
         _mint(to, tokenId);
         _setTokenURI(tokenId, uri);
         // saving cashback addresses and values
+        if(recipientAddresses.length>0){
         _cashbackRecipients[tokenId] = recipientAddresses;
         _cashbackValues[tokenId] = cashbackValues;
         _fixedValues[tokenId]=fValues;
-        return true;
+        }
     }
 
-    function mintWithTokenURI(
-        address to,
-        uint256 tokenId,
-        string memory uri
-    ) public returns (bool) {
+    function mintMultiple(
+        address[] memory to,
+        uint256[] memory tokenId,
+        string[] memory uri,
+        address[][] memory recipientAddresses,
+        uint256[][] memory cashbackValues,
+        uint256[][] memory fValues
+    ) public {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
             "ERC721PresetMinterPauserAutoId: must have minter role to mint"
         );
-        _mint(to, tokenId);
-        _setTokenURI(tokenId, uri);
-        return true;
+        for (uint256 i; i < to.length; i++) {
+            _mint(to[i], tokenId[i]);
+            _setTokenURI(tokenId[i], uri[i]);
+            if(recipientAddresses[i].length>0){
+            _cashbackRecipients[tokenId[i]] = recipientAddresses[i];
+            _cashbackValues[tokenId[i]] = cashbackValues[i];
+            _fixedValues[tokenId[i]]=fValues[i];
+            }
+        }
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -142,14 +153,12 @@ contract Tatum721Provenance is
 
     function updateCashbackForAuthor(uint256 tokenId, uint256 cashbackValue)
         public
-        returns (bool)
     {
         for (uint256 i; i < _cashbackValues[tokenId].length; i++) {
             if (_cashbackRecipients[tokenId][i] == _msgSender()) {
                 _cashbackValues[tokenId][i] = cashbackValue;
             }
         }
-        return true;
     }
 
     function burn(uint256 tokenId) public virtual {
@@ -201,7 +210,6 @@ contract Tatum721Provenance is
             }
             for (uint256 i; i < _cashbackRecipients[tokenId].length; i++) {
                 // transferring cashback to authors
-                // require(_cashbackValues[tokenId][i] > 0);
                 uint cbvalue=(_cashbackValues[tokenId][i]* value) / 1000000;
                 if ( cbvalue>=_fixedValues[tokenId][i]) {
                     payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
@@ -218,6 +226,6 @@ contract Tatum721Provenance is
         } 
         _safeTransfer(_msgSender(), to, tokenId, dataBytes);
         _appendTokenData(tokenId,data);
-        emit TransferWithProvenance(tokenId, to, data);
+        emit TransferWithProvenance(tokenId, to, data[:index],value);
     }
 }
