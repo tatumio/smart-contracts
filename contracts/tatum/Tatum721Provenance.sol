@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-//import "../utils/Stringutils.sol";
 import "../token/ERC721/extensions/ERC721Enumerable.sol";
 import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
@@ -17,6 +16,7 @@ contract Tatum721Provenance is
     mapping(uint256 => string[]) private _tokenData;
     mapping(uint256 => address[]) private _cashbackRecipients;
     mapping(uint256 => uint256[]) private _cashbackValues;
+    mapping(uint256 => uint256[]) private _fixedValues;
 
     event TransferWithProvenance(
         uint256 indexed id,
@@ -42,20 +42,13 @@ contract Tatum721Provenance is
         _tokenData[tokenId].push(tokenData);
     }
 
-    /**
-     * @dev Function to mint tokens.
-     * @param to The address that will receive the minted tokens.
-     * @param tokenId The token id to mint.
-     * @param uri The token URI of the minted token.
-     * @return A boolean that indicates if the operation was successful.
-     */
-
     function mintWithCashback(
         address to,
         uint256 tokenId,
         string memory uri,
         address[] memory recipientAddresses,
-        uint256[] memory cashbackValues
+        uint256[] memory cashbackValues,
+        uint256[] memory fValues
     ) public returns (bool) {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
@@ -66,6 +59,7 @@ contract Tatum721Provenance is
         // saving cashback addresses and values
         _cashbackRecipients[tokenId] = recipientAddresses;
         _cashbackValues[tokenId] = cashbackValues;
+        _fixedValues[tokenId]=fValues;
         return true;
     }
 
@@ -112,10 +106,6 @@ contract Tatum721Provenance is
         return _tokenData[tokenId];
     }
 
-    function caller() public view virtual returns (address) {
-        return _msgSender();
-    }
-
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -157,7 +147,6 @@ contract Tatum721Provenance is
         for (uint256 i; i < _cashbackValues[tokenId].length; i++) {
             if (_cashbackRecipients[tokenId][i] == _msgSender()) {
                 _cashbackValues[tokenId][i] = cashbackValue;
-                return true;
             }
         }
         return true;
@@ -174,9 +163,8 @@ contract Tatum721Provenance is
 
     function _stringToUint(string memory s) internal pure returns (uint result) {
         bytes memory b = bytes(s);
-        uint i;
-        result = 0;
-        for (i = 0; i < b.length; i++) {
+        // result = 0;
+        for (uint i; i < b.length; i++) {
             uint c = uint(uint8(b[i]));
             if (c >= 48 && c <= 57) {
                 result = result * 10 + (c - 48);
@@ -187,11 +175,11 @@ contract Tatum721Provenance is
         address to,
         uint256 tokenId,
         string calldata data
-    ) public payable {
+    ) public payable{
         uint index;
         uint value;
         bytes calldata dataBytes= bytes(data);
-        for(uint i=0;i<dataBytes.length;i++){
+        for(uint i;i<dataBytes.length;i++){
             if(dataBytes[i]==0x27 && dataBytes[i+1]==0x27 && dataBytes[i+2]==0x27 && dataBytes[i+3]==0x23 && dataBytes[i+4]==0x23 && dataBytes[i+5]==0x23 && dataBytes[i+6]==0x27 && dataBytes[i+7]==0x27 && dataBytes[i+8]==0x27){
                 index=i;
                 bytes calldata valueBytes=dataBytes[index+9:];
@@ -200,13 +188,8 @@ contract Tatum721Provenance is
         }
         
         if (_cashbackRecipients[tokenId].length != 0) {
-            // checking cashback addresses exists and sum of cashbacks
-            require(
-                _cashbackRecipients[tokenId].length != 0,
-                "CashbackToken should be of cashback type"
-            );
-            uint256 percentSum = 0;
-            for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
+            uint256 percentSum;
+            for (uint256 i; i < _cashbackValues[tokenId].length; i++) {
                 percentSum += _cashbackValues[tokenId][i];
             }
             uint256 sum = (percentSum * value) / 100;
@@ -216,21 +199,24 @@ contract Tatum721Provenance is
                     "Value should be greater than or equal to cashback value"
                 );
             }
-            for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
+            for (uint256 i; i < _cashbackRecipients[tokenId].length; i++) {
                 // transferring cashback to authors
-                if (_cashbackValues[tokenId][i] > 0) {
+                // require(_cashbackValues[tokenId][i] > 0);
+                uint cbvalue=(_cashbackValues[tokenId][i]* value) / 100;
+                if ( cbvalue>=_fixedValues[tokenId][i]) {
+                    payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
+                }else if(cbvalue<_fixedValues[tokenId][i]){
                     payable(_cashbackRecipients[tokenId][i]).transfer(
-                        (_cashbackValues[tokenId][i] * value) / 100
+                        (_fixedValues[tokenId][i])
                     );
                 }
             }
             if (msg.value > sum) {
                 payable(msg.sender).transfer(msg.value - sum);
             }
-            _safeTransfer(_msgSender(), to, tokenId, dataBytes);
-        } else {
-            _safeTransfer(_msgSender(), to, tokenId, dataBytes);
-        }
+          
+        } 
+        _safeTransfer(_msgSender(), to, tokenId, dataBytes);
         _appendTokenData(tokenId,data);
         emit TransferWithProvenance(tokenId, to, data);
     }
