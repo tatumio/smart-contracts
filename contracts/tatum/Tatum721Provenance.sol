@@ -11,7 +11,6 @@ contract Tatum721Provenance is
     ERC721URIStorage,
     AccessControlEnumerable
 {
-    
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     mapping(uint256 => string[]) private _tokenData;
     mapping(uint256 => address[]) private _cashbackRecipients;
@@ -22,7 +21,7 @@ contract Tatum721Provenance is
         uint256 indexed id,
         address owner,
         string data,
-        uint value
+        uint256 value
     );
 
     constructor(string memory name_, string memory symbol_)
@@ -32,10 +31,10 @@ contract Tatum721Provenance is
         _setupRole(MINTER_ROLE, _msgSender());
     }
 
-    function _appendTokenData(
-        uint256 tokenId,
-        string memory tokenData
-    ) internal virtual {
+    function _appendTokenData(uint256 tokenId, string memory tokenData)
+        internal
+        virtual
+    {
         require(
             _exists(tokenId),
             "ERC721URIStorage: URI set of nonexistent token"
@@ -58,10 +57,10 @@ contract Tatum721Provenance is
         _mint(to, tokenId);
         _setTokenURI(tokenId, uri);
         // saving cashback addresses and values
-        if(recipientAddresses.length>0){
-        _cashbackRecipients[tokenId] = recipientAddresses;
-        _cashbackValues[tokenId] = cashbackValues;
-        _fixedValues[tokenId]=fValues;
+        if (recipientAddresses.length > 0) {
+            _cashbackRecipients[tokenId] = recipientAddresses;
+            _cashbackValues[tokenId] = cashbackValues;
+            _fixedValues[tokenId] = fValues;
         }
     }
 
@@ -80,10 +79,10 @@ contract Tatum721Provenance is
         for (uint256 i; i < to.length; i++) {
             _mint(to[i], tokenId[i]);
             _setTokenURI(tokenId[i], uri[i]);
-            if(recipientAddresses[i].length>0){
-            _cashbackRecipients[tokenId[i]] = recipientAddresses[i];
-            _cashbackValues[tokenId[i]] = cashbackValues[i];
-            _fixedValues[tokenId[i]]=fValues[i];
+            if (recipientAddresses[i].length > 0) {
+                _cashbackRecipients[tokenId[i]] = recipientAddresses[i];
+                _cashbackValues[tokenId[i]] = cashbackValues[i];
+                _fixedValues[tokenId[i]] = fValues[i];
             }
         }
     }
@@ -170,32 +169,48 @@ contract Tatum721Provenance is
         _burn(tokenId);
     }
 
-    function _stringToUint(string memory s) internal pure returns (uint result) {
+    function _stringToUint(string memory s)
+        internal
+        pure
+        returns (uint256 result)
+    {
         bytes memory b = bytes(s);
         // result = 0;
-        for (uint i; i < b.length; i++) {
-            uint c = uint(uint8(b[i]));
+        for (uint256 i; i < b.length; i++) {
+            uint256 c = uint256(uint8(b[i]));
             if (c >= 48 && c <= 57) {
                 result = result * 10 + (c - 48);
             }
         }
     }
+
     function safeTransfer(
         address to,
         uint256 tokenId,
         string calldata data
-    ) public payable{
-        uint index;
-        uint value;
-        bytes calldata dataBytes= bytes(data);
-        for(uint i;i<dataBytes.length;i++){
-            if(dataBytes[i]==0x27 && dataBytes[i+1]==0x27 && dataBytes[i+2]==0x27 && dataBytes[i+3]==0x23 && dataBytes[i+4]==0x23 && dataBytes[i+5]==0x23 && dataBytes[i+6]==0x27 && dataBytes[i+7]==0x27 && dataBytes[i+8]==0x27){
-                index=i;
-                bytes calldata valueBytes=dataBytes[index+9:];
-                value=_stringToUint(string(valueBytes));
+    ) public payable {
+        uint256 index;
+        uint256 value;
+        bytes calldata dataBytes = bytes(data);
+        for (uint256 i; i < dataBytes.length; i++) {
+            if (
+                dataBytes[i] == 0x27 &&
+                dataBytes.length > i+8 &&
+                dataBytes[i + 1] == 0x27 &&
+                dataBytes[i + 2] == 0x27 &&
+                dataBytes[i + 3] == 0x23 &&
+                dataBytes[i + 4] == 0x23 &&
+                dataBytes[i + 5] == 0x23 &&
+                dataBytes[i + 6] == 0x27 &&
+                dataBytes[i + 7] == 0x27 &&
+                dataBytes[i + 8] == 0x27
+            ) {
+                index = i;
+                bytes calldata valueBytes = dataBytes[index + 9:];
+                value = _stringToUint(string(valueBytes));
             }
         }
-        
+
         if (_cashbackRecipients[tokenId].length != 0) {
             uint256 percentSum;
             for (uint256 i; i < _cashbackValues[tokenId].length; i++) {
@@ -210,10 +225,10 @@ contract Tatum721Provenance is
             }
             for (uint256 i; i < _cashbackRecipients[tokenId].length; i++) {
                 // transferring cashback to authors
-                uint cbvalue=(_cashbackValues[tokenId][i]* value) / 1000000;
-                if ( cbvalue>=_fixedValues[tokenId][i]) {
+                uint256 cbvalue = (_cashbackValues[tokenId][i] * value) / 10000;
+                if (cbvalue >= _fixedValues[tokenId][i]) {
                     payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
-                }else if(cbvalue<_fixedValues[tokenId][i]){
+                } else if (cbvalue < _fixedValues[tokenId][i]) {
                     payable(_cashbackRecipients[tokenId][i]).transfer(
                         (_fixedValues[tokenId][i])
                     );
@@ -222,10 +237,9 @@ contract Tatum721Provenance is
             if (msg.value > sum) {
                 payable(msg.sender).transfer(msg.value - sum);
             }
-          
-        } 
+        }
         _safeTransfer(_msgSender(), to, tokenId, dataBytes);
-        _appendTokenData(tokenId,data);
-        emit TransferWithProvenance(tokenId, to, data[:index],value);
+        _appendTokenData(tokenId, data);
+        emit TransferWithProvenance(tokenId, to, data[:index], value);
     }
 }
