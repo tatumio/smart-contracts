@@ -80,5 +80,7 @@
     "solidity-docgen": "^0.5.3",
     "web3": "^1.3.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@optionality.io/clone-factory": "^0.2.1"
+  }
 }
