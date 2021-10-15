@@ -64,7 +64,7 @@ contract NftAuction is Ownable, Pausable {
     /**
     * @dev Emitted when auction was cancelled and assets were returned to the seller.
     */
-    event AuctionCancelled(string indexed id);
+    event AuctionCancelled(string id);
 
     receive() external payable {
     }
