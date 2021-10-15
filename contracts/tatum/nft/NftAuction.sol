@@ -213,6 +213,12 @@ contract NftAuction is Ownable, Pausable {
                 revert("Unable to transfer ERC20 tokens to the Auction. Aborting");
             }
         }
+
+        // returns the previous bid to the bidder
+        if (newAuction.bidder != address(0) && newAuction.endingPrice != 0) {
+            _transferAssets(newAuction.erc20Address, newAuction.endingPrice, newAuction.bidder, false);
+        }
+
         // paid amount is on the Auction SC, we just need to update the auction status
         newAuction.endingPrice = bidWithoutFee;
         newAuction.bidder = msg.sender;
