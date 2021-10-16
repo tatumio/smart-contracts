@@ -87,8 +87,8 @@ contract('NftAuction', function (accounts) {
 
             const s = await auction.settleAuction('1');
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
-            expect((await balance.current(marketOwner)).toString()).to.be.equal(BigNumber.from(marketBalance).add(100).toString())
-            expect((await balance.current(seller)).toString()).to.be.equal(BigNumber.from(sellerBalance).add(10000).toString())
+            expect((await balance.current(marketOwner)).toString()).to.be.equal(BigNumber.from(marketBalance).add(102).toString())
+            expect((await balance.current(seller)).toString()).to.be.equal(BigNumber.from(sellerBalance).add(10098).toString())
         });
         it('create OK ERC721 auction for ERC20 asset', async function () {
             const token = await ERC721Mock.new(name, symbol);
@@ -156,8 +156,8 @@ contract('NftAuction', function (accounts) {
 
             const s = await auction.settleAuction('1');
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
-            expect((await erc20.balanceOf(seller)).toString()).to.be.equal('10000')
-            expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('100')
+            expect((await erc20.balanceOf(seller)).toString()).to.be.equal('9999')
+            expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('101')
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('0')
         });
         it('create OK ERC1155 auction for native asset', async function () {
@@ -226,8 +226,8 @@ contract('NftAuction', function (accounts) {
             expect((await token.balanceOf(auction.address, tokenId)).toString()).to.be.equal('0');
             expect((await token.balanceOf(buyer1155, tokenId)).toString()).to.be.equal('1');
             expect((await token.balanceOf(seller1155, tokenId)).toString()).to.be.equal('9');
-            expect((await balance.current(marketOwner1155)).toString()).to.be.equal(BigNumber.from(marketBalance).add(100).toString())
-            expect((await balance.current(seller1155)).toString()).to.be.equal(BigNumber.from(seller1155Balance).add(10000).toString())
+            expect((await balance.current(marketOwner1155)).toString()).to.be.equal(BigNumber.from(marketBalance).add(102).toString())
+            expect((await balance.current(seller1155)).toString()).to.be.equal(BigNumber.from(seller1155Balance).add(10098).toString())
         });
         it('create OK ERC1155 auction for ERC20 asset', async function () {
             const token = await ERC1155Mock.new('https://token-cdn-domain/{id}.json');
@@ -296,8 +296,8 @@ contract('NftAuction', function (accounts) {
             expect((await token.balanceOf(auction.address, tokenId)).toString()).to.be.equal('0');
             expect((await token.balanceOf(buyer1155, tokenId)).toString()).to.be.equal('1');
             expect((await token.balanceOf(seller1155, tokenId)).toString()).to.be.equal('9');
-            expect((await erc20.balanceOf(seller1155)).toString()).to.be.equal('10000')
-            expect((await erc20.balanceOf(marketOwner1155)).toString()).to.be.equal('100')
+            expect((await erc20.balanceOf(seller1155)).toString()).to.be.equal('9999')
+            expect((await erc20.balanceOf(marketOwner1155)).toString()).to.be.equal('101')
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('0')
         });
     });
