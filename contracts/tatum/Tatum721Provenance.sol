@@ -79,7 +79,7 @@ contract Tatum721Provenance is
         for (uint256 i; i < to.length; i++) {
             _mint(to[i], tokenId[i]);
             _setTokenURI(tokenId[i], uri[i]);
-            if (recipientAddresses.length>0 && recipientAddresses[i].length > 0) {
+            if ( recipientAddresses.length > 0 && recipientAddresses[i].length > 0 ) {
                 _cashbackRecipients[tokenId[i]] = recipientAddresses[i];
                 _cashbackValues[tokenId[i]] = cashbackValues[i];
                 _fixedValues[tokenId[i]] = fValues[i];
@@ -191,11 +191,12 @@ contract Tatum721Provenance is
     ) public payable {
         uint256 index;
         uint256 value;
+        uint256 sum;
         bytes calldata dataBytes = bytes(data);
         for (uint256 i; i < dataBytes.length; i++) {
             if (
                 dataBytes[i] == 0x27 &&
-                dataBytes.length > i+8 &&
+                dataBytes.length > i + 8 &&
                 dataBytes[i + 1] == 0x27 &&
                 dataBytes[i + 2] == 0x27 &&
                 dataBytes[i + 3] == 0x23 &&
@@ -210,20 +211,19 @@ contract Tatum721Provenance is
                 value = _stringToUint(string(valueBytes));
             }
         }
-
-        if (_cashbackRecipients[tokenId].length != 0) {
+        if ( _cashbackRecipients[tokenId].length > 0 ) {
             uint256 percentSum;
-            for (uint256 i; i < _cashbackValues[tokenId].length; i++) {
+            for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
                 percentSum += _cashbackValues[tokenId][i];
             }
-            uint256 sum = (percentSum * value) / 100;
+            sum = (percentSum * value) / 10000;
             if (sum > msg.value) {
                 payable(msg.sender).transfer(msg.value);
                 revert(
                     "Value should be greater than or equal to cashback value"
                 );
             }
-            for (uint256 i; i < _cashbackRecipients[tokenId].length; i++) {
+            for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
                 // transferring cashback to authors
                 uint256 cbvalue = (_cashbackValues[tokenId][i] * value) / 10000;
                 if (cbvalue >= _fixedValues[tokenId][i]) {
@@ -234,9 +234,9 @@ contract Tatum721Provenance is
                     );
                 }
             }
-            if (msg.value > sum) {
-                payable(msg.sender).transfer(msg.value - sum);
-            }
+        }
+        if (msg.value > sum) {
+            payable(msg.sender).transfer(msg.value - sum);
         }
         _safeTransfer(_msgSender(), to, tokenId, dataBytes);
         _appendTokenData(tokenId, data);
