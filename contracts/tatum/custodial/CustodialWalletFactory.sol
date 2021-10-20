@@ -13,10 +13,12 @@ contract CustodialWalletFactory {
         initialWallet = new CustodialWallet();
     }
 
-    function cloneNewWallet(address owner) public {
-        address payable clone = createClone(address(initialWallet));
-        CustodialWallet(clone).init(owner);
-        emit Created(clone);
+    function cloneNewWallet(address owner, uint256 count) public {
+        for (uint256 i = 0; i < count; i++) {
+            address payable clone = createClone(address(initialWallet));
+            CustodialWallet(clone).init(owner);
+            emit Created(clone);
+        }
     }
 
     function createClone(address target) internal returns (address payable result) {

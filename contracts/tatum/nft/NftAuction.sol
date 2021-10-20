@@ -34,6 +34,8 @@ contract NftAuction is Ownable, Pausable {
         uint256 endingPrice;
         // Actual highest bidder
         address bidder;
+        // Actual highest bid fee included
+        uint256 highestBid;
     }
 
     // List of all auctions id => auction.
@@ -142,19 +144,20 @@ contract NftAuction is Ownable, Pausable {
       * @param settleOrReturnFee - when true, fee is send to the auction recipient, otherwise returned to the owner
       */
     function _transferAssets(address erc20Address, uint256 amount, address recipient, bool settleOrReturnFee) internal {
+        uint256 fee = amount * _auctionFee / 10000;
         if (erc20Address != address(0)) {
-            IERC20(erc20Address).transfer(recipient, amount);
             if (settleOrReturnFee) {
-                IERC20(erc20Address).transfer(_auctionFeeRecipient, amount * _auctionFee / 10000);
+                IERC20(erc20Address).transfer(recipient, amount - fee);
+                IERC20(erc20Address).transfer(_auctionFeeRecipient, fee);
             } else {
-                IERC20(erc20Address).transfer(recipient, amount * _auctionFee / 10000);
+                IERC20(erc20Address).transfer(recipient, amount);
             }
         } else {
-            Address.sendValue(payable(recipient), amount);
             if (settleOrReturnFee) {
-                Address.sendValue(payable(_auctionFeeRecipient), amount * _auctionFee / 10000);
+                Address.sendValue(payable(recipient), amount - fee);
+                Address.sendValue(payable(_auctionFeeRecipient), fee);
             } else {
-                Address.sendValue(payable(recipient), amount * _auctionFee / 10000);
+                Address.sendValue(payable(recipient), amount);
             }
         }
     }
@@ -177,7 +180,7 @@ contract NftAuction is Ownable, Pausable {
         _escrowTokensToSell(isErc721, nftAddress, seller, tokenId, amount);
 
         _auctionCount++;
-        Auction memory auction = Auction(seller, nftAddress, tokenId, isErc721, endedAt, block.number, erc20Address, amount, 0, address(0));
+        Auction memory auction = Auction(seller, nftAddress, tokenId, isErc721, endedAt, block.number, erc20Address, amount, 0, address(0), 0);
         _auctions[id] = auction;
         emit AuctionCreated(isErc721, nftAddress, tokenId, id, amount, erc20Address, endedAt);
     }
@@ -203,7 +206,7 @@ contract NftAuction is Ownable, Pausable {
             require(IERC20(auction.erc20Address).allowance(msg.sender, address(this)) >= bidValue, "Insufficient approval for ERC20 token for the auction bid. Aborting.");
         }
 
-        Auction memory newAuction = Auction(auction.seller, auction.nftAddress, auction.tokenId, auction.isErc721, auction.endedAt, block.number, auction.erc20Address, auction.amount, auction.endingPrice, auction.bidder);
+        Auction memory newAuction = Auction(auction.seller, auction.nftAddress, auction.tokenId, auction.isErc721, auction.endedAt, block.number, auction.erc20Address, auction.amount, auction.endingPrice, auction.bidder, auction.highestBid);
         // reentrancy attack - we delete the auction temporarily
         delete _auctions[id];
 
@@ -213,12 +216,19 @@ contract NftAuction is Ownable, Pausable {
                 revert("Unable to transfer ERC20 tokens to the Auction. Aborting");
             }
         }
+
+        // returns the previous bid to the bidder
+        if (newAuction.bidder != address(0) && newAuction.highestBid != 0) {
+            _transferAssets(newAuction.erc20Address, newAuction.highestBid, newAuction.bidder, false);
+        }
+
         // paid amount is on the Auction SC, we just need to update the auction status
         newAuction.endingPrice = bidWithoutFee;
+        newAuction.highestBid = bidValue;
         newAuction.bidder = msg.sender;
 
         _auctions[id] = newAuction;
-        emit AuctionBid(msg.sender, bidWithoutFee, id);
+        emit AuctionBid(msg.sender, bidValue, id);
     }
 
     /**
@@ -236,14 +246,14 @@ contract NftAuction is Ownable, Pausable {
         uint256 amount = auction.amount;
         uint256 tokenId = auction.tokenId;
         address erc20Address = auction.erc20Address;
-        uint256 endingPrice = auction.endingPrice;
+        uint256 highestBid = auction.highestBid;
         address bidder = auction.bidder;
 
         // avoid reentrancy attacks
         delete _auctions[id];
 
         _transferNFT(isErc721, nftAddress, bidder, tokenId, amount);
-        _transferAssets(erc20Address, endingPrice, auction.seller, true);
+        _transferAssets(erc20Address, highestBid, auction.seller, true);
 
         _auctionCount--;
         emit AuctionSettled(id);
@@ -262,7 +272,7 @@ contract NftAuction is Ownable, Pausable {
         uint256 amount = auction.amount;
         uint256 tokenId = auction.tokenId;
         address erc20Address = auction.erc20Address;
-        uint256 endingPrice = auction.endingPrice;
+        uint256 highestBid = auction.highestBid;
         address bidder = auction.bidder;
 
         // prevent reentrancy attack
@@ -273,8 +283,8 @@ contract NftAuction is Ownable, Pausable {
         _transferNFT(isErc721, nftAddress, auction.seller, tokenId, amount);
 
         // returns the highest bid to the bidder
-        if (bidder != address(0) && endingPrice != 0) {
-            _transferAssets(erc20Address, endingPrice, bidder, false);
+        if (bidder != address(0) && highestBid != 0) {
+            _transferAssets(erc20Address, highestBid, bidder, false);
         }
 
         _auctionCount--;
