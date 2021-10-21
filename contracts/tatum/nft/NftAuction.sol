@@ -187,6 +187,47 @@ contract NftAuction is Ownable, Pausable {
 
     /**
     * @dev Buyer wants to buy NFT from auction. All the required checks must pass.
+    * Buyer must approve spending of ERC20 tokens, which will be deducted from his account to the auction contract.
+    * Contract must detect, if the bidder bid higher value thank the actual highest bid. If it's not enough, bid is not valid.
+    * If bid is the highest one, previous bidders assets will be released back to him - we are aware of reentrancy attacks, but we will cover that.
+    * Bid must be processed only during the validity of the auction, otherwise it's not accepted.
+    * @param id - id of the auction to buy
+    * @param bidValue - bid value + the auction fee
+    * @param bidder - bidder of the auction, from which account the ERC20 assets will be debited
+    */
+    function bid(string memory id, uint256 bidValue, address bidder) public whenNotPaused {
+        Auction memory auction = _auctions[id];
+        require(auction.erc20Address != address(0), "Auction must be placed for ERC20 token.");
+        require(auction.endedAt > block.number, "Auction has already ended. Unable to process bid. Aborting.");
+        uint256 bidWithoutFee = bidValue / (10000 + _auctionFee) * 10000;
+        require(auction.endingPrice < bidWithoutFee, "Bid free of the auction fee is lower thank actual highest bid price. Aborting.");
+        require(IERC20(auction.erc20Address).allowance(bidder, address(this)) >= bidValue, "Insufficient approval for ERC20 token for the auction bid. Aborting.");
+
+        Auction memory newAuction = Auction(auction.seller, auction.nftAddress, auction.tokenId, auction.isErc721, auction.endedAt, block.number, auction.erc20Address, auction.amount, auction.endingPrice, auction.bidder, auction.highestBid);
+        // reentrancy attack - we delete the auction temporarily
+        delete _auctions[id];
+
+        IERC20 token = IERC20(newAuction.erc20Address);
+        if (!token.transferFrom(bidder, address(this), bidValue)) {
+            revert("Unable to transfer ERC20 tokens from the bidder to the Auction. Aborting");
+        }
+
+        // returns the previous bid to the bidder
+        if (newAuction.bidder != address(0) && newAuction.highestBid != 0) {
+            _transferAssets(newAuction.erc20Address, newAuction.highestBid, newAuction.bidder, false);
+        }
+
+        // paid amount is on the Auction SC, we just need to update the auction status
+        newAuction.endingPrice = bidWithoutFee;
+        newAuction.highestBid = bidValue;
+        newAuction.bidder = bidder;
+
+        _auctions[id] = newAuction;
+        emit AuctionBid(bidder, bidValue, id);
+    }
+
+    /**
+    * @dev Buyer wants to buy NFT from auction. All the required checks must pass.
     * Buyer must either send ETH with this endpoint, or ERC20 tokens will be deducted from his account to the auction contract.
     * Contract must detect, if the bidder bid higher value thank the actual highest bid. If it's not enough, bid is not valid.
     * If bid is the highest one, previous bidders assets will be released back to him - we are aware of reentrancy attacks, but we will cover that.

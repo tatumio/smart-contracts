@@ -192,6 +192,48 @@ contract MarketplaceListing is Ownable {
     }
 
     /**
+    * @dev Buyer wants to buy NFT from listing. All the required checks must pass.
+    * Buyer must approve spending of the ERC20 tokens will be deducted from his account to the marketplace contract.
+    * @param listingId - id of the listing to buy
+    * @param erc20Address - optional address of the ERC20 token to pay for the assets
+    * @param buyer - buyer of the item, from which account the ERC20 assets will be debited
+    */
+    function buyAssetFromListing(string memory listingId, address erc20Address, address buyer) public {
+        Listing memory listing = _listings[listingId];
+        if (listing.state != State.INITIATED) {
+            revert("Listing is in wrong state. Aborting.");
+        }
+        if (listing.isErc721) {
+            if (IERC721(listing.nftAddress).ownerOf(listing.tokenId) != address(this)) {
+                revert("Asset is not owned by this listing. Probably was not sent to the smart contract, or was already sold.");
+            }
+        } else {
+            if (IERC1155(listing.nftAddress).balanceOf(address(this), listing.tokenId) < listing.amount) {
+                revert("Insufficient balance of the asset in this listing. Probably was not sent to the smart contract, or was already sold.");
+            }
+        }
+        if (listing.erc20Address != erc20Address) {
+            revert("ERC20 token address as a payer method should be the same as in the listing. Either listing, or method call has wrong ERC20 address.");
+        }
+        uint256 fee = listing.price * _marketplaceFee / 10000;
+        listing.state = State.SOLD;
+        listing.buyer = buyer;
+        _listings[listingId] = listing;
+        IERC20 token = IERC20(listing.erc20Address);
+        if (listing.price + fee > token.allowance(buyer, address(this))) {
+            revert("Insufficient ERC20 allowance balance for paying for the asset.");
+        }
+        token.transferFrom(buyer, _marketplaceFeeRecipient, fee);
+        token.transferFrom(buyer, listing.seller, listing.price);
+        if (listing.isErc721) {
+            IERC721(listing.nftAddress).safeTransferFrom(address(this), buyer, listing.tokenId);
+        } else {
+            IERC1155(listing.nftAddress).safeTransferFrom(address(this), buyer, listing.tokenId, listing.amount, "");
+        }
+        emit ListingSold(buyer, listingId);
+    }
+
+    /**
     * @dev Cancel listing - returns the NFT asset to the seller.
     * @param listingId - id of the listing to cancel
     */
