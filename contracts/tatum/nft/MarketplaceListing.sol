@@ -198,7 +198,7 @@ contract MarketplaceListing is Ownable {
     * @param erc20Address - optional address of the ERC20 token to pay for the assets
     * @param buyer - buyer of the item, from which account the ERC20 assets will be debited
     */
-    function buyAssetFromListing(string memory listingId, address erc20Address, address buyer) public {
+    function buyAssetFromListingForExternalBuyer(string memory listingId, address erc20Address, address buyer) public {
         Listing memory listing = _listings[listingId];
         if (listing.state != State.INITIATED) {
             revert("Listing is in wrong state. Aborting.");

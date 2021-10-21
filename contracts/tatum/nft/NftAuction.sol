@@ -195,7 +195,7 @@ contract NftAuction is Ownable, Pausable {
     * @param bidValue - bid value + the auction fee
     * @param bidder - bidder of the auction, from which account the ERC20 assets will be debited
     */
-    function bid(string memory id, uint256 bidValue, address bidder) public whenNotPaused {
+    function bidForExternalBidder(string memory id, uint256 bidValue, address bidder) public whenNotPaused {
         Auction memory auction = _auctions[id];
         require(auction.erc20Address != address(0), "Auction must be placed for ERC20 token.");
         require(auction.endedAt > block.number, "Auction has already ended. Unable to process bid. Aborting.");
