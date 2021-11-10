@@ -31,7 +31,7 @@ contract Tatum721Provenance is
         _setupRole(MINTER_ROLE, _msgSender());
     }
 
-    function _appendTokenData(uint256 tokenId, string memory tokenData)
+    function _appendTokenData(uint256 tokenId, string calldata tokenData)
         internal
         virtual
     {
@@ -79,7 +79,10 @@ contract Tatum721Provenance is
         for (uint256 i; i < to.length; i++) {
             _mint(to[i], tokenId[i]);
             _setTokenURI(tokenId[i], uri[i]);
-            if ( recipientAddresses.length > 0 && recipientAddresses[i].length > 0 ) {
+            if (
+                recipientAddresses.length > 0 &&
+                recipientAddresses[i].length > 0
+            ) {
                 _cashbackRecipients[tokenId[i]] = recipientAddresses[i];
                 _cashbackValues[tokenId[i]] = cashbackValues[i];
                 _fixedValues[tokenId[i]] = fValues[i];
@@ -187,12 +190,11 @@ contract Tatum721Provenance is
     function safeTransfer(
         address to,
         uint256 tokenId,
-        string calldata data
+        bytes calldata dataBytes
     ) public payable {
         uint256 index;
         uint256 value;
         uint256 sum;
-        bytes calldata dataBytes = bytes(data);
         for (uint256 i; i < dataBytes.length; i++) {
             if (
                 dataBytes[i] == 0x27 &&
@@ -211,7 +213,7 @@ contract Tatum721Provenance is
                 value = _stringToUint(string(valueBytes));
             }
         }
-        if ( _cashbackRecipients[tokenId].length > 0 ) {
+        if (_cashbackRecipients[tokenId].length > 0) {
             uint256 percentSum;
             for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
                 percentSum += _cashbackValues[tokenId][i];
@@ -239,7 +241,68 @@ contract Tatum721Provenance is
             payable(msg.sender).transfer(msg.value - sum);
         }
         _safeTransfer(_msgSender(), to, tokenId, dataBytes);
-        _appendTokenData(tokenId, data);
-        emit TransferWithProvenance(tokenId, to, data[:index], value);
+        string calldata dataString = string(dataBytes);
+        _appendTokenData(tokenId, dataString);
+        emit TransferWithProvenance(tokenId, to, dataString[:index], value);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes calldata dataBytes
+    ) public payable virtual override {
+        uint256 index;
+        uint256 value;
+        uint256 sum;
+        for (uint256 i; i < dataBytes.length; i++) {
+            if (
+                dataBytes[i] == 0x27 &&
+                dataBytes.length > i + 8 &&
+                dataBytes[i + 1] == 0x27 &&
+                dataBytes[i + 2] == 0x27 &&
+                dataBytes[i + 3] == 0x23 &&
+                dataBytes[i + 4] == 0x23 &&
+                dataBytes[i + 5] == 0x23 &&
+                dataBytes[i + 6] == 0x27 &&
+                dataBytes[i + 7] == 0x27 &&
+                dataBytes[i + 8] == 0x27
+            ) {
+                index = i;
+                bytes calldata valueBytes = dataBytes[index + 9:];
+                value = _stringToUint(string(valueBytes));
+            }
+        }
+        if (_cashbackRecipients[tokenId].length > 0) {
+            uint256 percentSum;
+            for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
+                percentSum += _cashbackValues[tokenId][i];
+            }
+            sum = (percentSum * value) / 10000;
+            if (sum > msg.value) {
+                payable(from).transfer(msg.value);
+                revert(
+                    "Value should be greater than or equal to cashback value"
+                );
+            }
+            for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
+                // transferring cashback to authors
+                uint256 cbvalue = (_cashbackValues[tokenId][i] * value) / 10000;
+                if (cbvalue >= _fixedValues[tokenId][i]) {
+                    payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
+                } else if (cbvalue < _fixedValues[tokenId][i]) {
+                    payable(_cashbackRecipients[tokenId][i]).transfer(
+                        (_fixedValues[tokenId][i])
+                    );
+                }
+            }
+        }
+        if (msg.value > sum) {
+            payable(from).transfer(msg.value - sum);
+        }
+        _safeTransfer(from, to, tokenId, dataBytes);
+        string calldata dataString = string(dataBytes);
+        _appendTokenData(tokenId, dataString);
+        emit TransferWithProvenance(tokenId, to, dataString[:index], value);
     }
 }
