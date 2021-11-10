@@ -79,10 +79,7 @@ contract Tatum721Provenance is
         for (uint256 i; i < to.length; i++) {
             _mint(to[i], tokenId[i]);
             _setTokenURI(tokenId[i], uri[i]);
-            if (
-                recipientAddresses.length > 0 &&
-                recipientAddresses[i].length > 0
-            ) {
+            if ( recipientAddresses.length > 0 && recipientAddresses[i].length > 0 ) {
                 _cashbackRecipients[tokenId[i]] = recipientAddresses[i];
                 _cashbackValues[tokenId[i]] = cashbackValues[i];
                 _fixedValues[tokenId[i]] = fValues[i];
@@ -213,7 +210,7 @@ contract Tatum721Provenance is
                 value = _stringToUint(string(valueBytes));
             }
         }
-        if (_cashbackRecipients[tokenId].length > 0) {
+        if ( _cashbackRecipients[tokenId].length > 0 ) {
             uint256 percentSum;
             for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
                 percentSum += _cashbackValues[tokenId][i];

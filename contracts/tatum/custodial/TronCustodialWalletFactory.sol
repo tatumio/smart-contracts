@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./CustodialWallet.sol";
+import "./TronCustodialWallet.sol";
 
-contract CustodialWalletFactory {
+contract TronTronCustodialWalletFactory {
 
-    CustodialWallet private initialWallet;
+    TronCustodialWallet private initialWallet;
 
     event Created(address addr);
 
     constructor () {
-        initialWallet = new CustodialWallet();
+        initialWallet = new TronCustodialWallet();
     }
 
     function cloneNewWallet(address owner, uint256 count) public {
         for (uint256 i = 0; i < count; i++) {
             address payable clone = createClone(address(initialWallet));
-            CustodialWallet(clone).init(owner);
+            TronCustodialWallet(clone).init(owner);
             emit Created(clone);
         }
     }
