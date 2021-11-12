@@ -1,10 +1,10 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
-
 import "../token/ERC721/extensions/ERC721Enumerable.sol";
 import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
+import "../token/ERC20/IERC20.sol";
 
 contract Tatum721Provenance is
     ERC721Enumerable,
@@ -192,6 +192,8 @@ contract Tatum721Provenance is
         uint256 index;
         uint256 value;
         uint256 sum;
+        address erc;
+        IERC20 token;
         for (uint256 i; i < dataBytes.length; i++) {
             if (
                 dataBytes[i] == 0x27 &&
@@ -208,41 +210,64 @@ contract Tatum721Provenance is
                 index = i;
                 bytes calldata valueBytes = dataBytes[index + 9:];
                 value = _stringToUint(string(valueBytes));
+                if( keccak256(abi.encodePacked(dataBytes[:11]))==keccak256(abi.encodePacked(string("CUSTOMTOKEN")))){
+                    erc=_bytesToAddress(dataBytes[11:]);
+                    token= IERC20(erc);
+                }
             }
         }
-        if ( _cashbackRecipients[tokenId].length > 0 ) {
+        if (_cashbackRecipients[tokenId].length > 0) {
             uint256 percentSum;
             for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
                 percentSum += _cashbackValues[tokenId][i];
             }
             sum = (percentSum * value) / 10000;
-            if (sum > msg.value) {
-                payable(msg.sender).transfer(msg.value);
-                revert(
-                    "Value should be greater than or equal to cashback value"
-                );
+            if (erc == address(0)) {
+                if (sum > msg.value) {
+                    payable(msg.sender).transfer(msg.value);
+                    revert(
+                        "Value should be greater than or equal to cashback value"
+                    );
+                }
+            }else{
+                if (sum > token.allowance(msg.sender, address(this))) {
+                    if (msg.value > 0) {
+                        Address.sendValue(payable(msg.sender), msg.value);
+                    }
+                    revert("Insufficient ERC20 allowance balance for paying for the asset.");
+                }
             }
             for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
                 // transferring cashback to authors
                 uint256 cbvalue = (_cashbackValues[tokenId][i] * value) / 10000;
-                if (cbvalue >= _fixedValues[tokenId][i]) {
-                    payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
-                } else if (cbvalue < _fixedValues[tokenId][i]) {
-                    payable(_cashbackRecipients[tokenId][i]).transfer(
-                        (_fixedValues[tokenId][i])
-                    );
+                if (erc == address(0)) {
+                    if (cbvalue >= _fixedValues[tokenId][i]) {
+                        payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
+                    } else if (cbvalue < _fixedValues[tokenId][i]) {
+                        payable(_cashbackRecipients[tokenId][i]).transfer(
+                            (_fixedValues[tokenId][i])
+                        );
+                    }
+                    if (msg.value > sum) {
+                       payable(msg.sender).transfer(msg.value - sum);
+                    }
+                }else{
+                    cbvalue=_cashbackCalculator(cbvalue,_fixedValues[tokenId][i]);
+                    token.transferFrom(msg.sender, _cashbackRecipients[tokenId][i], cbvalue);
                 }
             }
         }
-        if (msg.value > sum) {
-            payable(msg.sender).transfer(msg.value - sum);
-        }
-        _safeTransfer(_msgSender(), to, tokenId, dataBytes);
+        _safeTransfer(msg.sender, to, tokenId, dataBytes);
         string calldata dataString = string(dataBytes);
         _appendTokenData(tokenId, dataString);
         emit TransferWithProvenance(tokenId, to, dataString[:index], value);
     }
-
+    function _bytesToAddress(bytes memory bys) private pure returns (address addr) {
+        assembly {
+            addr := mload(add(bys, 32))
+        } 
+    }
+   
     function safeTransferFrom(
         address from,
         address to,
@@ -252,7 +277,9 @@ contract Tatum721Provenance is
         uint256 index;
         uint256 value;
         uint256 sum;
-        for (uint256 i; i < dataBytes.length; i++) {
+        address erc;
+        IERC20 token;
+        for (uint256 i=0; i < dataBytes.length; i++) {
             if (
                 dataBytes[i] == 0x27 &&
                 dataBytes.length > i + 8 &&
@@ -268,6 +295,10 @@ contract Tatum721Provenance is
                 index = i;
                 bytes calldata valueBytes = dataBytes[index + 9:];
                 value = _stringToUint(string(valueBytes));
+                if( keccak256(abi.encodePacked(dataBytes[:11]))==keccak256(abi.encodePacked(string("CUSTOMTOKEN")))){
+                    erc=_bytesToAddress(dataBytes[11:]);
+                    token= IERC20(erc);
+                }
             }
         }
         if (_cashbackRecipients[tokenId].length > 0) {
@@ -276,30 +307,50 @@ contract Tatum721Provenance is
                 percentSum += _cashbackValues[tokenId][i];
             }
             sum = (percentSum * value) / 10000;
-            if (sum > msg.value) {
-                payable(from).transfer(msg.value);
-                revert(
-                    "Value should be greater than or equal to cashback value"
-                );
+            if (erc == address(0)) {
+                if (sum > msg.value) {
+                    payable(from).transfer(msg.value);
+                    revert(
+                        "Value should be greater than or equal to cashback value"
+                    );
+                }
+            }else{
+                if (sum > token.allowance(from, address(this))) {
+                    if (msg.value > 0) {
+                        Address.sendValue(payable(from), msg.value);
+                    }
+                    revert("Insufficient ERC20 allowance balance for paying for the asset.");
+                }
             }
             for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
                 // transferring cashback to authors
                 uint256 cbvalue = (_cashbackValues[tokenId][i] * value) / 10000;
-                if (cbvalue >= _fixedValues[tokenId][i]) {
-                    payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
-                } else if (cbvalue < _fixedValues[tokenId][i]) {
-                    payable(_cashbackRecipients[tokenId][i]).transfer(
-                        (_fixedValues[tokenId][i])
-                    );
+                if (erc == address(0)) {
+                    if (cbvalue >= _fixedValues[tokenId][i]) {
+                        payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
+                    } else if (cbvalue < _fixedValues[tokenId][i]) {
+                        payable(_cashbackRecipients[tokenId][i]).transfer(
+                            (_fixedValues[tokenId][i])
+                        );
+                    }
+                    if (msg.value > sum) {
+                       payable(from).transfer(msg.value - sum);
+                    }
+                }else{
+                    cbvalue=_cashbackCalculator(cbvalue,_fixedValues[tokenId][i]);
+                    token.transferFrom(from, _cashbackRecipients[tokenId][i], cbvalue);                  
                 }
             }
-        }
-        if (msg.value > sum) {
-            payable(from).transfer(msg.value - sum);
         }
         _safeTransfer(from, to, tokenId, dataBytes);
         string calldata dataString = string(dataBytes);
         _appendTokenData(tokenId, dataString);
         emit TransferWithProvenance(tokenId, to, dataString[:index], value);
+    }
+    function _cashbackCalculator(uint256 x, uint256 y) private pure returns (uint256) {
+        if(x>=y){
+            return x;
+        }
+        return y;
     }
 }
