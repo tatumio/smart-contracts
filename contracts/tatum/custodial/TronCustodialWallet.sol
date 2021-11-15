@@ -46,6 +46,8 @@ interface TRC721 {
 
 contract TronCustodialWallet is CustodialOwnable {
 
+    event TransferNativeAsset(address indexed recipient, uint256 indexed amount);
+    
     function onTRC721Received(address, address, uint256, bytes memory) public virtual returns (bytes4) {
         return this.onTRC721Received.selector;
     }
@@ -74,6 +76,7 @@ contract TronCustodialWallet is CustodialOwnable {
         } else if (contractType == 1) {
             TRC721(tokenAddress).safeTransferFrom(address(this), recipient, tokenId, "");
         } else if (contractType == 3) {
+            emit TransferNativeAsset(recipient, amount);
             payable(recipient).transfer(amount);
         } else {
             revert("Unsupported contract type");
@@ -103,6 +106,7 @@ contract TronCustodialWallet is CustodialOwnable {
                 TRC721(tokenAddress[i]).safeTransferFrom(address(this), recipient[i], tokenId[i], "");
             } else if (contractType[i] == 3) {
                 payable(recipient[i]).transfer(amount[i]);
+                emit TransferNativeAsset(recipient[i], amount[i]);
             } else {
                 revert("Unsupported contract type");
             }

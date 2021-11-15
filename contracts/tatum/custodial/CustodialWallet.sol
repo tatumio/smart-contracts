@@ -9,6 +9,8 @@ import "./CustodialOwnable.sol";
 
 contract CustodialWallet is CustodialOwnable {
 
+    event TransferNativeAsset(address indexed recipient, uint256 indexed amount);
+    
     function onERC721Received(address, address, uint256, bytes memory) public virtual returns (bytes4) {
         return this.onERC721Received.selector;
     }
@@ -49,6 +51,7 @@ contract CustodialWallet is CustodialOwnable {
             IERC1155(tokenAddress).safeTransferFrom(address(this), recipient, tokenId, amount, "");
         } else if (contractType == 3) {
             payable(recipient).transfer(amount);
+            emit TransferNativeAsset(recipient, amount);
         } else {
             revert("Unsupported contract type");
         }
@@ -80,6 +83,7 @@ contract CustodialWallet is CustodialOwnable {
                 IERC1155(tokenAddress[i]).safeTransferFrom(address(this), recipient[i], tokenId[i], amount[i], "");
             } else if (contractType[i] == 3) {
                 payable(recipient[i]).transfer(amount[i]);
+                emit TransferNativeAsset(recipient[i], amount[i]);
             } else {
                 revert("Unsupported contract type");
             }
