@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 import "../token/ERC721/extensions/ERC721Enumerable.sol";
 import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
+import "../token/ERC20/IERC20.sol";
 
 contract Tatum721 is
     ERC721Enumerable,
@@ -176,7 +177,16 @@ contract Tatum721 is
         _burn(tokenId);
     }
 
-    function safeTransfer(address to, uint256 tokenId) public payable {
+    function safeTransfer(
+        address to,
+        uint256 tokenId,
+        bytes calldata dataBytes
+    ) public payable {
+        address erc = _bytesCheck(dataBytes);
+        IERC20 token;
+        if (erc != address(0)) {
+            token = IERC20(erc);
+        }
         if (_cashbackRecipients[tokenId].length != 0) {
             // checking cashback addresses exists and sum of cashbacks
             require(
@@ -187,22 +197,51 @@ contract Tatum721 is
             for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
                 sum += _cashbackValues[tokenId][i];
             }
-            if (sum > msg.value) {
-                payable(msg.sender).transfer(msg.value);
-                revert(
-                    "Value should be greater than or equal to cashback value"
-                );
-            }
-            for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
-                // transferring cashback to authors
-                if (_cashbackValues[tokenId][i] > 0) {
-                    payable(_cashbackRecipients[tokenId][i]).transfer(
-                        _cashbackValues[tokenId][i]
+            if (erc == address(0)) {
+                if (sum > msg.value) {
+                    payable(msg.sender).transfer(msg.value);
+                    revert(
+                        "Value should be greater than or equal to cashback value"
                     );
                 }
-            }
-            if (msg.value > sum) {
-                payable(msg.sender).transfer(msg.value - sum);
+                for (
+                    uint256 i = 0;
+                    i < _cashbackRecipients[tokenId].length;
+                    i++
+                ) {
+                    // transferring cashback to authors
+                    if (_cashbackValues[tokenId][i] > 0) {
+                        payable(_cashbackRecipients[tokenId][i]).transfer(
+                            _cashbackValues[tokenId][i]
+                        );
+                    }
+                }
+                if (msg.value > sum) {
+                    payable(msg.sender).transfer(msg.value - sum);
+                }
+            } else {
+                if (sum > token.allowance(_msgSender(), address(this))) {
+                    revert(
+                        "Insufficient ERC20 allowance balance for paying for the asset."
+                    );
+                }
+                for (
+                    uint256 i = 0;
+                    i < _cashbackRecipients[tokenId].length;
+                    i++
+                ) {
+                    // transferring cashback to authors
+                    if (_cashbackValues[tokenId][i] > 0) {
+                        token.transferFrom(
+                            _msgSender(),
+                            _cashbackRecipients[tokenId][i],
+                            _cashbackValues[tokenId][i]
+                        );
+                    }
+                }
+                if (msg.value > 0) {
+                    payable(_msgSender()).transfer(msg.value);
+                }
             }
             _safeTransfer(_msgSender(), to, tokenId, "");
         } else {
@@ -216,8 +255,14 @@ contract Tatum721 is
     function safeTransferFrom(
         address from,
         address to,
-        uint256 tokenId
+        uint256 tokenId,
+        bytes calldata dataBytes
     ) public payable virtual override {
+        address erc = _bytesCheck(dataBytes);
+        IERC20 token;
+        if (erc != address(0)) {
+            token = IERC20(erc);
+        }
         if (_cashbackRecipients[tokenId].length != 0) {
             // checking cashback addresses exists and sum of cashbacks
             require(
@@ -228,22 +273,51 @@ contract Tatum721 is
             for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
                 sum += _cashbackValues[tokenId][i];
             }
-            if (sum > msg.value) {
-                payable(from).transfer(msg.value);
-                revert(
-                    "Value should be greater than or equal to cashback value"
-                );
-            }
-            for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
-                // transferring cashback to authors
-                if (_cashbackValues[tokenId][i] > 0) {
-                    payable(_cashbackRecipients[tokenId][i]).transfer(
-                        _cashbackValues[tokenId][i]
+            if (erc == address(0)) {
+                if (sum > msg.value) {
+                    payable(from).transfer(msg.value);
+                    revert(
+                        "Value should be greater than or equal to cashback value"
                     );
                 }
-            }
-            if (msg.value > sum) {
-                payable(from).transfer(msg.value - sum);
+                for (
+                    uint256 i = 0;
+                    i < _cashbackRecipients[tokenId].length;
+                    i++
+                ) {
+                    // transferring cashback to authors
+                    if (_cashbackValues[tokenId][i] > 0) {
+                        payable(_cashbackRecipients[tokenId][i]).transfer(
+                            _cashbackValues[tokenId][i]
+                        );
+                    }
+                }
+                if (msg.value > sum) {
+                    payable(from).transfer(msg.value - sum);
+                }
+            } else {
+                if (sum > token.allowance(from, address(this))) {
+                    revert(
+                        "Insufficient ERC20 allowance balance for paying for the asset."
+                    );
+                }
+                for (
+                    uint256 i = 0;
+                    i < _cashbackRecipients[tokenId].length;
+                    i++
+                ) {
+                    // transferring cashback to authors
+                    if (_cashbackValues[tokenId][i] > 0) {
+                        token.transferFrom(
+                            from,
+                            _cashbackRecipients[tokenId][i],
+                            _cashbackValues[tokenId][i]
+                        );
+                    }
+                }
+                if (msg.value > 0) {
+                    payable(msg.sender).transfer(msg.value);
+                }
             }
             _safeTransfer(from, to, tokenId, "");
         } else {
@@ -251,6 +325,30 @@ contract Tatum721 is
                 payable(from).transfer(msg.value);
             }
             _safeTransfer(from, to, tokenId, "");
+        }
+    }
+
+    function _bytesToAddress(bytes memory bys)
+        private
+        pure
+        returns (address addr)
+    {
+        assembly {
+            addr := mload(add(bys, 32))
+        }
+    }
+
+    function _bytesCheck(bytes calldata dataBytes)
+        private
+        pure
+        returns (address erc)
+    {
+        if (
+            dataBytes.length > 11 &&
+            keccak256(abi.encodePacked(dataBytes[:11])) ==
+            keccak256(abi.encodePacked(string("CUSTOMTOKEN")))
+        ) {
+            erc = _bytesToAddress(dataBytes[11:]);
         }
     }
 }
