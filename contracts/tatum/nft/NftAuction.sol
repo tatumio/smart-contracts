@@ -121,21 +121,40 @@ contract NftAuction is Ownable, Pausable {
             IERC1155(nftAddress).safeTransferFrom(seller, address(this), tokenId, amount, "");
         } else {
             require(IERC721(nftAddress).ownerOf(tokenId) == seller, "ERC721 token does not belong to the author.");
-            IERC721(nftAddress).safeTransferFrom(seller, address(this), tokenId);
+        //    IERC721(nftAddress).safeTransferFrom(seller, address(this), tokenId);
         }
     }
 
     /**
       * Transfer NFT from the contract to the recipient
       */
-    function _transferNFT(bool isErc721, address nftAddress, address recipient, uint256 tokenId, uint256 amount) internal {
+    function _transferNFT(bool isErc721, address nftAddress, address sender, address recipient, uint256 tokenId, uint256 amount, address erc20Address) internal {
         if (!isErc721) {
             IERC1155(nftAddress).safeTransferFrom(address(this), recipient, tokenId, amount, "");
         } else {
-            IERC721(nftAddress).safeTransferFrom(address(this), recipient, tokenId);
+            if(erc20Address==address(0)){
+                IERC721(nftAddress).safeTransferFrom(sender, recipient, tokenId,abi.encodePacked("SAFETRANSFERFROM","'''###'''",_uint2str(amount)));    
+            }else{
+                bytes memory bytesInput= abi.encodePacked("CUSTOMTOKEN0x",_toAsciiString(erc20Address),"'''###'''",_uint2str(amount));
+                IERC721(nftAddress).safeTransferFrom(sender, recipient, tokenId,bytesInput);     
+            }            
         }
     }
-
+    function _toAsciiString(address x) internal pure returns (bytes memory) {
+        bytes memory s = new bytes(40);
+        for (uint i = 0; i < 20; i++) {
+            bytes1 b = bytes1(uint8(uint(uint160(x)) / (2**(8*(19 - i)))));
+            bytes1 hi = bytes1(uint8(b) / 16);
+            bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+            s[2*i] = _char(hi);
+            s[2*i+1] = _char(lo);            
+        }
+        return s;
+    }
+    function _char(bytes1 b) internal pure returns (bytes1 c) {
+        if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+        else return bytes1(uint8(b) + 0x57);
+    }
     /**
       * Transfer assets locked in the highest bid to the recipient
       * @param erc20Address - if we are working with ERC20 token or native asset
@@ -293,7 +312,7 @@ contract NftAuction is Ownable, Pausable {
         // avoid reentrancy attacks
         delete _auctions[id];
 
-        _transferNFT(isErc721, nftAddress, bidder, tokenId, amount);
+        _transferNFT(isErc721, nftAddress, auction.seller, bidder, tokenId, amount, auction.erc20Address);
         _transferAssets(erc20Address, highestBid, auction.seller, true);
 
         _auctionCount--;
@@ -308,10 +327,10 @@ contract NftAuction is Ownable, Pausable {
         Auction memory auction = _auctions[id];
         require(auction.seller != address(0), "Auction is already settled. Aborting.");
         require(auction.seller == msg.sender || msg.sender == owner(), "Auction can't be cancelled from other thank seller or owner. Aborting.");
-        bool isErc721 = auction.isErc721;
-        address nftAddress = auction.nftAddress;
-        uint256 amount = auction.amount;
-        uint256 tokenId = auction.tokenId;
+        // bool isErc721 = auction.isErc721;
+        // address nftAddress = auction.nftAddress;
+        // uint256 amount = auction.amount;
+        // uint256 tokenId = auction.tokenId;
         address erc20Address = auction.erc20Address;
         uint256 highestBid = auction.highestBid;
         address bidder = auction.bidder;
@@ -321,7 +340,6 @@ contract NftAuction is Ownable, Pausable {
 
         // we have assured that the reentrancy attack wont happen because we have deleted the auction from the list of auctions before we are sending the assets back
         // returns the NFT to the seller
-        _transferNFT(isErc721, nftAddress, auction.seller, tokenId, amount);
 
         // returns the highest bid to the bidder
         if (bidder != address(0) && highestBid != 0) {
@@ -330,5 +348,26 @@ contract NftAuction is Ownable, Pausable {
 
         _auctionCount--;
         emit AuctionCancelled(id);
+    }
+    function _uint2str(uint _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len;
+        while (_i != 0) {
+            k = k-1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
     }
 }

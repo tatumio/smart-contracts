@@ -1,13 +1,13 @@
-const {BN, constants, expectEvent, balance, time} = require('@openzeppelin/test-helpers');
-const {expect} = require('chai');
-const {BigNumber} = require("ethers");
-const {ZERO_ADDRESS} = constants;
+const { BN, constants, expectEvent, balance, time } = require('@openzeppelin/test-helpers');
+const { expect } = require('chai');
+const { BigNumber } = require("ethers");
+const { ZERO_ADDRESS } = constants;
 
 const NftAuction = artifacts.require('NftAuction');
 const ERC721Mock = artifacts.require('ERC721Mock');
 const ERC1155Mock = artifacts.require('ERC1155Mock');
 const ERC20Mock = artifacts.require('ERC20Mock');
-
+const ERC721Provenance = artifacts.require('Tatum721Provenance')
 
 contract('NftAuction', function (accounts) {
     const [a1, a2, a3, a4, a5, a6, marketOwner, seller, buyer, marketOwner1155, seller1155, buyer1155] = accounts;
@@ -34,7 +34,7 @@ contract('NftAuction', function (accounts) {
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
-            await token.approve(auction.address, tokenId, {from: seller});
+            await token.approve(auction.address, tokenId, { from: seller });
             expect(await token.ownerOf(tokenId)).to.be.equal(seller);
 
             const c = await auction.createAuction('1', true, nftAddress, tokenId, seller, 1, endedAt, ZERO_ADDRESS)
@@ -44,8 +44,6 @@ contract('NftAuction', function (accounts) {
                 fail('Should not update fee when auction is present')
             } catch (_) {
             }
-
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
             expectEvent(c, 'AuctionCreated', {
                 isErc721: true,
                 nftAddress,
@@ -54,7 +52,6 @@ contract('NftAuction', function (accounts) {
                 erc20Address: ZERO_ADDRESS,
                 endedAt,
             })
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
 
             await time.advanceBlock();
             let auctions = await auction.getAuction('1');
@@ -70,7 +67,7 @@ contract('NftAuction', function (accounts) {
             const sellerBalance = (await balance.current(seller)).toString();
             const marketBalance = (await balance.current(marketOwner)).toString();
 
-            const b = await auction.bid('1', 10200, {from: buyer, value: 10200});
+            const b = await auction.bid('1', 10200, { from: buyer, value: 10200 });
             auctions = await auction.getAuction('1');
             expect(auctions[2]).to.be.equal('1');
             expect(auctions[8]).to.be.equal('10000');
@@ -78,7 +75,6 @@ contract('NftAuction', function (accounts) {
             expectEvent(b, 'AuctionBid', {
                 buyer,
             })
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
             expect((await balance.current(auction.address)).toString()).to.be.equal('10200')
             expect((await balance.current(marketOwner)).toString()).to.be.equal(marketBalance.toString())
             expect((await balance.current(seller)).toString()).to.be.equal(sellerBalance.toString())
@@ -89,6 +85,81 @@ contract('NftAuction', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
             expect((await balance.current(marketOwner)).toString()).to.be.equal(BigNumber.from(marketBalance).add(102).toString())
             expect((await balance.current(seller)).toString()).to.be.equal(BigNumber.from(sellerBalance).add(10098).toString())
+        });
+        it('create OK ERC721 Provenance auction for ERC20 asset with cashbacks', async function () {
+            const token = await ERC721Provenance.new(name, symbol);
+            const fee = new BN(100); // 1%
+
+            const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
+            expect((await erc20.balanceOf(buyer)).toString()).to.be.equal('1000000')
+
+            const auction = await NftAuction.new(200, marketOwner);
+            expect((await auction.getAuctionFee()).toString()).to.equal(new BN(200).toString());
+            await auction.setAuctionFee(fee);
+            expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
+
+            const tokenId = new BN(1);
+            await token.mintMultiple([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]]);
+
+            const nftAddress = token.address;
+            await erc20.transfer(auction.address, new BN(101000), { from: buyer })
+            await erc20.approve(token.address, new BN(101000), { from: buyer })
+
+            await token.approve(auction.address, tokenId, { from: seller });
+            expect(await token.allowance(auction.address, tokenId)).to.be.equal(true);
+            const endedAt = (await time.latestBlock()).add(new BN(10));
+            // await token.approve(auction.address, tokenId, {from: seller});
+            // expect(await token.ownerOf(tokenId)).to.be.equal(seller);
+
+            const c = await auction.createAuction('1', true, nftAddress, tokenId, seller, 1, endedAt, erc20.address)
+
+            expectEvent(c, 'AuctionCreated', {
+                isErc721: true,
+                nftAddress,
+                tokenId,
+                amount: new BN(1),
+                erc20Address: erc20.address,
+                endedAt,
+            })
+
+            await time.advanceBlock();
+            let auctions = await auction.getAuction('1');
+            expect(auctions[0]).to.be.equal(seller);
+            expect(auctions[1]).to.be.equal(nftAddress);
+            expect(auctions[2]).to.be.equal('1');
+            expect(auctions[3]).to.be.equal(true);
+            expect(auctions[6]).to.be.equal(erc20.address);
+            expect(auctions[7]).to.be.equal('1');
+            expect(auctions[8]).to.be.equal('0');
+            expect(auctions[9]).to.be.equal(ZERO_ADDRESS);
+
+            await erc20.approve(auction.address, new BN(10100), { from: buyer })
+            expect((await erc20.balanceOf(seller)).toString()).to.be.equal('0')
+            expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
+            expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('101000')
+            const b = await auction.bid('1', 10100, { from: buyer });
+            auctions = await auction.getAuction('1');
+            expect(auctions[2]).to.be.equal('1');
+            expect(auctions[8]).to.be.equal('10000');
+            expect(auctions[9]).to.be.equal(buyer);
+            expectEvent(b, 'AuctionBid', {
+                buyer,
+            })
+
+            expect(await token.allowance(auction.address, tokenId)).to.be.equal(true);
+            expect((await erc20.balanceOf(seller)).toString()).to.be.equal('0')
+            expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
+            expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('111100')
+
+            await time.advanceBlockTo(endedAt.add(new BN(1)))
+
+            const s = await auction.settleAuction('1');
+            expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
+            expect((await erc20.balanceOf(seller)).toString()).to.be.equal('9999')
+            expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('101')
+            expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('101000')
+            expect((await erc20.balanceOf(a1)).toString()).to.be.equal('10')
+            expect((await erc20.balanceOf(a2)).toString()).to.be.equal('10')
         });
         it('create OK ERC721 auction for ERC20 asset', async function () {
             const token = await ERC721Mock.new(name, symbol);
@@ -107,12 +178,10 @@ contract('NftAuction', function (accounts) {
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
-            await token.approve(auction.address, tokenId, {from: seller});
-            expect(await token.ownerOf(tokenId)).to.be.equal(seller);
+            await token.approve(auction.address, tokenId, { from: seller });
 
             const c = await auction.createAuction('1', true, nftAddress, tokenId, seller, 1, endedAt, erc20.address)
 
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
             expectEvent(c, 'AuctionCreated', {
                 isErc721: true,
                 nftAddress,
@@ -121,7 +190,6 @@ contract('NftAuction', function (accounts) {
                 erc20Address: erc20.address,
                 endedAt,
             })
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
 
             await time.advanceBlock();
             let auctions = await auction.getAuction('1');
@@ -134,11 +202,11 @@ contract('NftAuction', function (accounts) {
             expect(auctions[8]).to.be.equal('0');
             expect(auctions[9]).to.be.equal(ZERO_ADDRESS);
 
-            await erc20.approve(auction.address, new BN(10100), {from: buyer})
+            await erc20.approve(auction.address, new BN(10100), { from: buyer })
             expect((await erc20.balanceOf(seller)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('0')
-            const b = await auction.bid('1', 10100, {from: buyer});
+            const b = await auction.bid('1', 10100, { from: buyer });
             auctions = await auction.getAuction('1');
             expect(auctions[2]).to.be.equal('1');
             expect(auctions[8]).to.be.equal('10000');
@@ -147,7 +215,6 @@ contract('NftAuction', function (accounts) {
                 buyer,
             })
 
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
             expect((await erc20.balanceOf(seller)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('10100')
@@ -178,7 +245,7 @@ contract('NftAuction', function (accounts) {
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
-            await token.setApprovalForAll(auction.address, true, {from: seller1155});
+            await token.setApprovalForAll(auction.address, true, { from: seller1155 });
             expect((await token.balanceOf(seller1155, tokenId)).toString()).to.be.equal('10');
 
             const c = await auction.createAuction('1', false, nftAddress, tokenId, seller1155, 1, endedAt, ZERO_ADDRESS)
@@ -208,7 +275,7 @@ contract('NftAuction', function (accounts) {
             const seller1155Balance = (await balance.current(seller1155)).toString();
             const marketBalance = (await balance.current(marketOwner1155)).toString();
 
-            const b = await auction.bid('1', 10200, {from: buyer1155, value: 10200});
+            const b = await auction.bid('1', 10200, { from: buyer1155, value: 10200 });
             auctions = await auction.getAuction('1');
             expect(auctions[2]).to.be.equal('1');
             expect(auctions[8]).to.be.equal('10000');
@@ -246,7 +313,7 @@ contract('NftAuction', function (accounts) {
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
-            await token.setApprovalForAll(auction.address, true, {from: seller1155});
+            await token.setApprovalForAll(auction.address, true, { from: seller1155 });
             expect((await token.balanceOf(seller1155, tokenId)).toString()).to.be.equal('10');
 
             const c = await auction.createAuction('1', false, nftAddress, tokenId, seller1155, 1, endedAt, erc20.address)
@@ -273,11 +340,11 @@ contract('NftAuction', function (accounts) {
             expect(auctions[8]).to.be.equal('0');
             expect(auctions[9]).to.be.equal(ZERO_ADDRESS);
 
-            await erc20.approve(auction.address, new BN(10100), {from: buyer1155})
+            await erc20.approve(auction.address, new BN(10100), { from: buyer1155 })
             expect((await erc20.balanceOf(seller1155)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(marketOwner1155)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('0')
-            const b = await auction.bid('1', 10100, {from: buyer1155});
+            const b = await auction.bid('1', 10100, { from: buyer1155 });
             auctions = await auction.getAuction('1');
             expect(auctions[2]).to.be.equal('1');
             expect(auctions[8]).to.be.equal('10000');
@@ -312,12 +379,11 @@ contract('NftAuction', function (accounts) {
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
-            await token.approve(auction.address, tokenId, {from: seller});
+            await token.approve(auction.address, tokenId, { from: seller });
             expect(await token.ownerOf(tokenId)).to.be.equal(seller);
 
             const c = await auction.createAuction('1', true, nftAddress, tokenId, seller, 1, endedAt, ZERO_ADDRESS)
 
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
             expectEvent(c, 'AuctionCreated', {
                 isErc721: true,
                 nftAddress,
@@ -326,7 +392,6 @@ contract('NftAuction', function (accounts) {
                 erc20Address: ZERO_ADDRESS,
                 endedAt,
             })
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
 
             await time.advanceBlock();
             let auctions = await auction.getAuction('1');
@@ -341,7 +406,7 @@ contract('NftAuction', function (accounts) {
             const sellerBalance = (await balance.current(seller)).toString();
             const marketBalance = (await balance.current(marketOwner)).toString();
 
-            const b = await auction.bid('1', 10200, {from: buyer, value: 10200});
+            const b = await auction.bid('1', 10200, { from: buyer, value: 10200 });
             auctions = await auction.getAuction('1');
             expect(auctions[2]).to.be.equal('1');
             expect(auctions[8]).to.be.equal('10000');
@@ -349,13 +414,12 @@ contract('NftAuction', function (accounts) {
             expectEvent(b, 'AuctionBid', {
                 buyer,
             })
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
             expect((await balance.current(auction.address)).toString()).to.be.equal('10200')
             expect((await balance.current(marketOwner)).toString()).to.be.equal(marketBalance.toString())
             expect((await balance.current(seller)).toString()).to.be.equal(sellerBalance.toString())
 
             try {
-                await auction.cancelAuction('1', {from: buyer})
+                await auction.cancelAuction('1', { from: buyer })
                 fail('Should not cancel from buyer');
             } catch (_) {
             }
@@ -384,12 +448,10 @@ contract('NftAuction', function (accounts) {
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
-            await token.approve(auction.address, tokenId, {from: seller});
-            expect(await token.ownerOf(tokenId)).to.be.equal(seller);
+            await token.approve(auction.address, tokenId, { from: seller });
 
             const c = await auction.createAuction('1', true, nftAddress, tokenId, seller, 1, endedAt, erc20.address)
 
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
             expectEvent(c, 'AuctionCreated', {
                 isErc721: true,
                 nftAddress,
@@ -398,7 +460,6 @@ contract('NftAuction', function (accounts) {
                 erc20Address: erc20.address,
                 endedAt,
             })
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
 
             await time.advanceBlock();
             let auctions = await auction.getAuction('1');
@@ -411,11 +472,11 @@ contract('NftAuction', function (accounts) {
             expect(auctions[8]).to.be.equal('0');
             expect(auctions[9]).to.be.equal(ZERO_ADDRESS);
 
-            await erc20.approve(auction.address, new BN(10100), {from: buyer})
+            await erc20.approve(auction.address, new BN(10100), { from: buyer })
             expect((await erc20.balanceOf(seller)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('0')
-            const b = await auction.bid('1', 10100, {from: buyer});
+            const b = await auction.bid('1', 10100, { from: buyer });
             auctions = await auction.getAuction('1');
             expect(auctions[2]).to.be.equal('1');
             expect(auctions[8]).to.be.equal('10000');
@@ -424,7 +485,6 @@ contract('NftAuction', function (accounts) {
                 buyer,
             })
 
-            expect(await token.ownerOf(tokenId)).to.be.equal(auction.address);
             expect((await erc20.balanceOf(seller)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('10100')
@@ -432,7 +492,7 @@ contract('NftAuction', function (accounts) {
             await time.advanceBlockTo(endedAt.add(new BN(1)))
 
             try {
-                await auction.cancelAuction('1', {from: buyer})
+                await auction.cancelAuction('1', { from: buyer })
                 fail('Should not cancel from buyer');
             } catch (_) {
             }

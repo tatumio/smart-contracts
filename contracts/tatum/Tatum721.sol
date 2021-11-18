@@ -84,6 +84,10 @@ contract Tatum721 is
         return _cashbackRecipients[tokenId];
     }
 
+    function allowance(address a, uint256 t) public view returns (bool) {
+        return _isApprovedOrOwner(a, t);
+    }
+
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -234,7 +238,7 @@ contract Tatum721 is
                     if (_cashbackValues[tokenId][i] > 0) {
                         token.transferFrom(
                             _msgSender(),
-                            _cashbackRecipients[tokenId][i],
+                            to,
                             _cashbackValues[tokenId][i]
                         );
                     }
@@ -296,7 +300,7 @@ contract Tatum721 is
                     payable(from).transfer(msg.value - sum);
                 }
             } else {
-                if (sum > token.allowance(from, address(this))) {
+                if (sum > token.allowance(to, address(this))) {
                     revert(
                         "Insufficient ERC20 allowance balance for paying for the asset."
                     );
@@ -309,7 +313,7 @@ contract Tatum721 is
                     // transferring cashback to authors
                     if (_cashbackValues[tokenId][i] > 0) {
                         token.transferFrom(
-                            from,
+                            to,
                             _cashbackRecipients[tokenId][i],
                             _cashbackValues[tokenId][i]
                         );
@@ -328,14 +332,35 @@ contract Tatum721 is
         }
     }
 
-    function _bytesToAddress(bytes memory bys)
-        private
+    function _bytesToAddress(bytes calldata tmp)
+        internal
         pure
-        returns (address addr)
+        returns (address _parsedAddress)
     {
-        assembly {
-            addr := mload(add(bys, 32))
+        uint160 iaddr = 0;
+        uint160 b1;
+        uint160 b2;
+        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
+            iaddr *= 256;
+            b1 = uint160(uint8(tmp[i]));
+            b2 = uint160(uint8(tmp[i + 1]));
+            if ((b1 >= 97) && (b1 <= 102)) {
+                b1 -= 87;
+            } else if ((b1 >= 65) && (b1 <= 70)) {
+                b1 -= 55;
+            } else if ((b1 >= 48) && (b1 <= 57)) {
+                b1 -= 48;
+            }
+            if ((b2 >= 97) && (b2 <= 102)) {
+                b2 -= 87;
+            } else if ((b2 >= 65) && (b2 <= 70)) {
+                b2 -= 55;
+            } else if ((b2 >= 48) && (b2 <= 57)) {
+                b2 -= 48;
+            }
+            iaddr += (b1 * 16 + b2);
         }
+        return address(iaddr);
     }
 
     function _bytesCheck(bytes calldata dataBytes)
