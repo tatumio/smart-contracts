@@ -99,7 +99,7 @@ contract('NftAuction', function (accounts) {
             expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mintMultiple([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]]);
+            await token.mintMultiple([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]],erc20.address);
 
             const nftAddress = token.address;
             await erc20.transfer(auction.address, new BN(101000), { from: buyer })

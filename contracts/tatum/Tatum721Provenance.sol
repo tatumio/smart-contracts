@@ -16,6 +16,7 @@ contract Tatum721Provenance is
     mapping(uint256 => address[]) private _cashbackRecipients;
     mapping(uint256 => uint256[]) private _cashbackValues;
     mapping(uint256 => uint256[]) private _fixedValues;
+    mapping(uint256 => address) private _customToken;
 
     event TransferWithProvenance(
         uint256 indexed id,
@@ -48,6 +49,31 @@ contract Tatum721Provenance is
         string memory uri,
         address[] memory recipientAddresses,
         uint256[] memory cashbackValues,
+        uint256[] memory fValues,
+        address erc20
+    ) public {
+        require(
+            erc20 != address(0),
+            "Custom cashbacks cannot be set to 0 address"
+        );
+        _customToken[tokenId] = erc20;
+        return
+            mintWithTokenURI(
+                to,
+                tokenId,
+                uri,
+                recipientAddresses,
+                cashbackValues,
+                fValues
+            );
+    }
+
+    function mintWithTokenURI(
+        address to,
+        uint256 tokenId,
+        string memory uri,
+        address[] memory recipientAddresses,
+        uint256[] memory cashbackValues,
         uint256[] memory fValues
     ) public {
         require(
@@ -63,7 +89,24 @@ contract Tatum721Provenance is
             _fixedValues[tokenId] = fValues;
         }
     }
-
+    function mintMultiple(
+        address[] memory to,
+        uint256[] memory tokenId,
+        string[] memory uri,
+        address[][] memory recipientAddresses,
+        uint256[][] memory cashbackValues,
+        uint256[][] memory fValues,
+        address erc20
+    ) public {
+        require(
+            erc20 != address(0),
+            "Custom cashbacks cannot be set to 0 address"
+        );
+        for (uint256 i; i < to.length; i++) {
+            _customToken[tokenId[i]] = erc20;
+        }
+        return mintMultiple(to, tokenId, uri, recipientAddresses, cashbackValues, fValues);
+    }
     function mintMultiple(
         address[] memory to,
         uint256[] memory tokenId,
@@ -199,11 +242,10 @@ contract Tatum721Provenance is
         uint256 index;
         uint256 value;
         uint256 sum;
-        address erc;
         IERC20 token;
-        (index, value, erc) = _bytesCheck(dataBytes);
-        if (erc != address(0)) {
-            token = IERC20(erc);
+        (index, value) = _bytesCheck(dataBytes);
+        if (_customToken[tokenId] != address(0)) {
+            token = IERC20(_customToken[tokenId]);
         }
         if (_cashbackRecipients[tokenId].length > 0) {
             uint256 percentSum;
@@ -211,7 +253,7 @@ contract Tatum721Provenance is
                 percentSum += _cashbackValues[tokenId][i];
             }
             sum = (percentSum * value) / 10000;
-            if (erc == address(0)) {
+            if (_customToken[tokenId] == address(0)) {
                 if (sum > msg.value) {
                     payable(msg.sender).transfer(msg.value);
                     revert(
@@ -228,7 +270,7 @@ contract Tatum721Provenance is
             for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
                 // transferring cashback to authors
                 uint256 cbvalue = (_cashbackValues[tokenId][i] * value) / 10000;
-                if (erc == address(0)) {
+                if (_customToken[tokenId] == address(0)) {
                     if (cbvalue >= _fixedValues[tokenId][i]) {
                         payable(_cashbackRecipients[tokenId][i]).transfer(
                             cbvalue
@@ -242,10 +284,7 @@ contract Tatum721Provenance is
                         payable(msg.sender).transfer(msg.value - sum);
                     }
                 } else {
-                    cbvalue = _cashbackCalculator(
-                        cbvalue,
-                        _fixedValues[tokenId][i]
-                    );
+                    cbvalue = _cashbackCalculator(cbvalue, _fixedValues[tokenId][i]);
                     token.transferFrom(
                         msg.sender,
                         _cashbackRecipients[tokenId][i],
@@ -272,11 +311,11 @@ contract Tatum721Provenance is
         uint256 index;
         uint256 value;
         uint256 sum;
-        address erc;
         IERC20 token;
-        (index, value, erc) = _bytesCheck(dataBytes);
-        if (erc != address(0)) {
-            token = IERC20(erc);
+        (index, value) = _bytesCheck(dataBytes);
+
+        if(_customToken[tokenId]!=address(0)){
+            token= IERC20(_customToken[tokenId]);
         }
         if (_cashbackRecipients[tokenId].length > 0) {
             uint256 percentSum;
@@ -284,7 +323,7 @@ contract Tatum721Provenance is
                 percentSum += _cashbackValues[tokenId][i];
             }
             sum = (percentSum * value) / 10000;
-            if (erc == address(0)) {
+            if (_customToken[tokenId] == address(0)) {
                 if (sum > msg.value) {
                     payable(from).transfer(msg.value);
                     revert(
@@ -301,7 +340,7 @@ contract Tatum721Provenance is
             for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
                 // transferring cashback to authors
                 uint256 cbvalue = (_cashbackValues[tokenId][i] * value) / 10000;
-                if (erc == address(0)) {
+                if (_customToken[tokenId] == address(0)) {
                     if (cbvalue >= _fixedValues[tokenId][i]) {
                         payable(_cashbackRecipients[tokenId][i]).transfer(
                             cbvalue
@@ -315,10 +354,8 @@ contract Tatum721Provenance is
                         payable(from).transfer(msg.value - sum);
                     }
                 } else {
-                    cbvalue = _cashbackCalculator(
-                        cbvalue,
-                        _fixedValues[tokenId][i]
-                    );
+                    cbvalue = _cashbackCalculator(cbvalue,_fixedValues[tokenId][i]);
+                    
                     token.transferFrom(
                         to,
                         _cashbackRecipients[tokenId][i],
@@ -347,44 +384,12 @@ contract Tatum721Provenance is
         return y;
     }
 
-    function _bytesToAddress(bytes calldata tmp)
-        internal
-        pure
-        returns (address _parsedAddress)
-    {
-        uint160 iaddr = 0;
-        uint160 b1;
-        uint160 b2;
-        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
-            iaddr *= 256;
-            b1 = uint160(uint8(tmp[i]));
-            b2 = uint160(uint8(tmp[i + 1]));
-            if ((b1 >= 97) && (b1 <= 102)) {
-                b1 -= 87;
-            } else if ((b1 >= 65) && (b1 <= 70)) {
-                b1 -= 55;
-            } else if ((b1 >= 48) && (b1 <= 57)) {
-                b1 -= 48;
-            }
-            if ((b2 >= 97) && (b2 <= 102)) {
-                b2 -= 87;
-            } else if ((b2 >= 65) && (b2 <= 70)) {
-                b2 -= 55;
-            } else if ((b2 >= 48) && (b2 <= 57)) {
-                b2 -= 48;
-            }
-            iaddr += (b1 * 16 + b2);
-        }
-        return address(iaddr);
-    }
-
     function _bytesCheck(bytes calldata dataBytes)
         private
         pure
         returns (
             uint256 index,
-            uint256 value,
-            address erc
+            uint256 value
         )
     {
         for (uint256 i = 0; i < dataBytes.length; i++) {
@@ -403,13 +408,6 @@ contract Tatum721Provenance is
                 index = i;
                 bytes calldata valueBytes = dataBytes[index + 9:];
                 value = _stringToUint(string(valueBytes));
-                if (
-                    dataBytes.length > 11 &&
-                    keccak256(abi.encodePacked(dataBytes[:11])) ==
-                    keccak256(abi.encodePacked(string("CUSTOMTOKEN")))
-                ) {
-                    erc = _bytesToAddress(dataBytes[11:]);
-                }
             }
         }
     }

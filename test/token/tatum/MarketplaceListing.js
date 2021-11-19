@@ -67,7 +67,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
         });
         it('create OK ERC721 listing for ERC20 asset', async function () {
-            const token = await ERC721Mock.new(name, symbol);
+            const token = await Tatum721Mock.new(name, symbol);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -79,7 +79,7 @@ contract('MarketplaceListing', function (accounts) {
             expect((await marketplace.getMarketplaceFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mint(seller, tokenId);
+            await token.mintWithTokenURI(seller, tokenId,"test.com");
 
             const nftAddress = token.address;
             const c = await marketplace.createListing('1', true, nftAddress, tokenId, 10000, seller, 1, erc20.address)
@@ -128,7 +128,7 @@ contract('MarketplaceListing', function (accounts) {
             expect((await marketplace.getMarketplaceFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mintMultipleCashback([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]]);
+            await token.mintMultipleCashback([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]],erc20.address);
 
             const nftAddress = token.address;
             const c = await marketplace.createListing('1', true, nftAddress, tokenId, 10000, seller, 1, erc20.address)
@@ -180,7 +180,7 @@ contract('MarketplaceListing', function (accounts) {
             expect((await marketplace.getMarketplaceFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mintMultiple([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]]);
+            await token.mintMultiple([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]],erc20.address);
             // await token.mint(seller, tokenId);
             await erc20.approve(marketplace.address, new BN(10100), { from: buyer })
             await erc20.approve(token.address, new BN(10100), { from: buyer })

@@ -17,7 +17,7 @@ contract Tatum721 is
     // mapping cashback to addresses and their values
     mapping(uint256 => address[]) private _cashbackRecipients;
     mapping(uint256 => uint256[]) private _cashbackValues;
-
+    mapping(uint256 => address) private _customToken;
     constructor(string memory name_, string memory symbol_)
         ERC721(name_, symbol_)
     {
@@ -132,7 +132,20 @@ contract Tatum721 is
         }
         return true;
     }
-
+    function mintMultipleCashback(
+        address[] memory to,
+        uint256[] memory tokenId,
+        string[] memory uri,
+        address[][] memory recipientAddresses,
+        uint256[][] memory cashbackValues,
+        address erc20
+    ) public returns (bool) {
+        require(erc20!=address(0), "Custom cashbacks cannot be set to 0 address");
+        for (uint256 i = 0; i < tokenId.length; i++) {
+            _customToken[tokenId[i]]=erc20;
+        }
+        return mintMultipleCashback(to,tokenId,uri,recipientAddresses,cashbackValues);
+    }
     function mintMultipleCashback(
         address[] memory to,
         uint256[] memory tokenId,
@@ -152,7 +165,18 @@ contract Tatum721 is
         }
         return true;
     }
-
+    function mintWithCashback(
+            address to,
+            uint256 tokenId,
+            string memory uri,
+            address[] memory recipientAddresses,
+            uint256[] memory cashbackValues,
+            address erc20
+        ) public returns (bool) {
+            require(erc20!=address(0), "Custom cashbacks cannot be set to 0 address");
+            _customToken[tokenId]=erc20;
+            return mintWithCashback(to,tokenId,uri,recipientAddresses,cashbackValues);
+        }
     function mintWithCashback(
         address to,
         uint256 tokenId,
