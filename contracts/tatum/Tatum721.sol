@@ -5,19 +5,22 @@ pragma experimental ABIEncoderV2;
 import "../token/ERC721/extensions/ERC721Enumerable.sol";
 import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
+import "../token/ERC20/IERC20.sol";
 
 contract Tatum721 is
-ERC721Enumerable,
-ERC721URIStorage,
-AccessControlEnumerable
+    ERC721Enumerable,
+    ERC721URIStorage,
+    AccessControlEnumerable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     // mapping cashback to addresses and their values
     mapping(uint256 => address[]) private _cashbackRecipients;
     mapping(uint256 => uint256[]) private _cashbackValues;
-
-    constructor (string memory name_, string memory symbol_) ERC721(name_, symbol_) {
+    mapping(uint256 => address) private _customToken;
+    constructor(string memory name_, string memory symbol_)
+        ERC721(name_, symbol_)
+    {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MINTER_ROLE, _msgSender());
     }
@@ -44,28 +47,45 @@ AccessControlEnumerable
     }
 
     function supportsInterface(bytes4 interfaceId)
-    public view virtual override(AccessControlEnumerable, ERC721, ERC721Enumerable)
-    returns (bool)
+        public
+        view
+        virtual
+        override(AccessControlEnumerable, ERC721, ERC721Enumerable)
+        returns (bool)
     {
         return super.supportsInterface(interfaceId);
     }
 
     function tokenURI(uint256 tokenId)
-    public view virtual override(ERC721, ERC721URIStorage) returns (string memory)
+        public
+        view
+        virtual
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
     {
         return ERC721URIStorage.tokenURI(tokenId);
     }
 
     function tokenCashbackValues(uint256 tokenId)
-    public view virtual returns (uint256[] memory)
+        public
+        view
+        virtual
+        returns (uint256[] memory)
     {
         return _cashbackValues[tokenId];
     }
 
     function tokenCashbackRecipients(uint256 tokenId)
-    public view virtual returns (address[] memory)
+        public
+        view
+        virtual
+        returns (address[] memory)
     {
         return _cashbackRecipients[tokenId];
+    }
+
+    function allowance(address a, uint256 t) public view returns (bool) {
+        return _isApprovedOrOwner(a, t);
     }
 
     function _beforeTokenTransfer(
@@ -77,7 +97,9 @@ AccessControlEnumerable
     }
 
     function _burn(uint256 tokenId)
-    internal virtual override(ERC721, ERC721URIStorage)
+        internal
+        virtual
+        override(ERC721, ERC721URIStorage)
     {
         return ERC721URIStorage._burn(tokenId);
     }
@@ -98,10 +120,10 @@ AccessControlEnumerable
         return true;
     }
 
-    function updateCashbackForAuthor(
-        uint256 tokenId,
-        uint256 cashbackValue
-    ) public returns (bool) {
+    function updateCashbackForAuthor(uint256 tokenId, uint256 cashbackValue)
+        public
+        returns (bool)
+    {
         for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
             if (_cashbackRecipients[tokenId][i] == _msgSender()) {
                 _cashbackValues[tokenId][i] = cashbackValue;
@@ -110,7 +132,20 @@ AccessControlEnumerable
         }
         return true;
     }
-
+    function mintMultipleCashback(
+        address[] memory to,
+        uint256[] memory tokenId,
+        string[] memory uri,
+        address[][] memory recipientAddresses,
+        uint256[][] memory cashbackValues,
+        address erc20
+    ) public returns (bool) {
+        require(erc20!=address(0), "Custom cashbacks cannot be set to 0 address");
+        for (uint256 i = 0; i < tokenId.length; i++) {
+            _customToken[tokenId[i]]=erc20;
+        }
+        return mintMultipleCashback(to,tokenId,uri,recipientAddresses,cashbackValues);
+    }
     function mintMultipleCashback(
         address[] memory to,
         uint256[] memory tokenId,
@@ -130,7 +165,18 @@ AccessControlEnumerable
         }
         return true;
     }
-
+    function mintWithCashback(
+            address to,
+            uint256 tokenId,
+            string memory uri,
+            address[] memory recipientAddresses,
+            uint256[] memory cashbackValues,
+            address erc20
+        ) public returns (bool) {
+            require(erc20!=address(0), "Custom cashbacks cannot be set to 0 address");
+            _customToken[tokenId]=erc20;
+            return mintWithCashback(to,tokenId,uri,recipientAddresses,cashbackValues);
+        }
     function mintWithCashback(
         address to,
         uint256 tokenId,
@@ -159,7 +205,16 @@ AccessControlEnumerable
         _burn(tokenId);
     }
 
-    function safeTransfer(address to, uint256 tokenId) public payable {
+    function safeTransfer(
+        address to,
+        uint256 tokenId,
+        bytes calldata dataBytes
+    ) public payable {
+        address erc = _bytesCheck(dataBytes);
+        IERC20 token;
+        if (erc != address(0)) {
+            token = IERC20(erc);
+        }
         if (_cashbackRecipients[tokenId].length != 0) {
             // checking cashback addresses exists and sum of cashbacks
             require(
@@ -170,20 +225,51 @@ AccessControlEnumerable
             for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
                 sum += _cashbackValues[tokenId][i];
             }
-            if (sum > msg.value) {
-                payable(msg.sender).transfer(msg.value);
-                revert("Value should be greater than or equal to cashback value");
-            }
-            for (uint256 i = 0; i < _cashbackRecipients[tokenId].length; i++) {
-                // transferring cashback to authors
-                if (_cashbackValues[tokenId][i] > 0) {
-                    payable(_cashbackRecipients[tokenId][i]).transfer(
-                        _cashbackValues[tokenId][i]
+            if (erc == address(0)) {
+                if (sum > msg.value) {
+                    payable(msg.sender).transfer(msg.value);
+                    revert(
+                        "Value should be greater than or equal to cashback value"
                     );
                 }
-            }
-            if (msg.value > sum) {
-                payable(msg.sender).transfer(msg.value - sum);
+                for (
+                    uint256 i = 0;
+                    i < _cashbackRecipients[tokenId].length;
+                    i++
+                ) {
+                    // transferring cashback to authors
+                    if (_cashbackValues[tokenId][i] > 0) {
+                        payable(_cashbackRecipients[tokenId][i]).transfer(
+                            _cashbackValues[tokenId][i]
+                        );
+                    }
+                }
+                if (msg.value > sum) {
+                    payable(msg.sender).transfer(msg.value - sum);
+                }
+            } else {
+                if (sum > token.allowance(_msgSender(), address(this))) {
+                    revert(
+                        "Insufficient ERC20 allowance balance for paying for the asset."
+                    );
+                }
+                for (
+                    uint256 i = 0;
+                    i < _cashbackRecipients[tokenId].length;
+                    i++
+                ) {
+                    // transferring cashback to authors
+                    if (_cashbackValues[tokenId][i] > 0) {
+                        token.transferFrom(
+                            _msgSender(),
+                            to,
+                            _cashbackValues[tokenId][i]
+                        );
+                    }
+                }
+                if (msg.value > 0) {
+                    payable(_msgSender()).transfer(msg.value);
+                }
             }
             _safeTransfer(_msgSender(), to, tokenId, "");
         } else {
@@ -191,6 +277,127 @@ AccessControlEnumerable
                 payable(msg.sender).transfer(msg.value);
             }
             _safeTransfer(_msgSender(), to, tokenId, "");
+        }
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes calldata dataBytes
+    ) public payable virtual override {
+        address erc = _bytesCheck(dataBytes);
+        IERC20 token;
+        if (erc != address(0)) {
+            token = IERC20(erc);
+        }
+        if (_cashbackRecipients[tokenId].length != 0) {
+            // checking cashback addresses exists and sum of cashbacks
+            require(
+                _cashbackRecipients[tokenId].length != 0,
+                "CashbackToken should be of cashback type"
+            );
+            uint256 sum = 0;
+            for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
+                sum += _cashbackValues[tokenId][i];
+            }
+            if (erc == address(0)) {
+                if (sum > msg.value) {
+                    payable(from).transfer(msg.value);
+                    revert(
+                        "Value should be greater than or equal to cashback value"
+                    );
+                }
+                for (
+                    uint256 i = 0;
+                    i < _cashbackRecipients[tokenId].length;
+                    i++
+                ) {
+                    // transferring cashback to authors
+                    if (_cashbackValues[tokenId][i] > 0) {
+                        payable(_cashbackRecipients[tokenId][i]).transfer(
+                            _cashbackValues[tokenId][i]
+                        );
+                    }
+                }
+                if (msg.value > sum) {
+                    payable(from).transfer(msg.value - sum);
+                }
+            } else {
+                if (sum > token.allowance(to, address(this))) {
+                    revert(
+                        "Insufficient ERC20 allowance balance for paying for the asset."
+                    );
+                }
+                for (
+                    uint256 i = 0;
+                    i < _cashbackRecipients[tokenId].length;
+                    i++
+                ) {
+                    // transferring cashback to authors
+                    if (_cashbackValues[tokenId][i] > 0) {
+                        token.transferFrom(
+                            to,
+                            _cashbackRecipients[tokenId][i],
+                            _cashbackValues[tokenId][i]
+                        );
+                    }
+                }
+                if (msg.value > 0) {
+                    payable(msg.sender).transfer(msg.value);
+                }
+            }
+            _safeTransfer(from, to, tokenId, "");
+        } else {
+            if (msg.value > 0) {
+                payable(from).transfer(msg.value);
+            }
+            _safeTransfer(from, to, tokenId, "");
+        }
+    }
+
+    function _bytesToAddress(bytes calldata tmp)
+        internal
+        pure
+        returns (address _parsedAddress)
+    {
+        uint160 iaddr = 0;
+        uint160 b1;
+        uint160 b2;
+        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
+            iaddr *= 256;
+            b1 = uint160(uint8(tmp[i]));
+            b2 = uint160(uint8(tmp[i + 1]));
+            if ((b1 >= 97) && (b1 <= 102)) {
+                b1 -= 87;
+            } else if ((b1 >= 65) && (b1 <= 70)) {
+                b1 -= 55;
+            } else if ((b1 >= 48) && (b1 <= 57)) {
+                b1 -= 48;
+            }
+            if ((b2 >= 97) && (b2 <= 102)) {
+                b2 -= 87;
+            } else if ((b2 >= 65) && (b2 <= 70)) {
+                b2 -= 55;
+            } else if ((b2 >= 48) && (b2 <= 57)) {
+                b2 -= 48;
+            }
+            iaddr += (b1 * 16 + b2);
+        }
+        return address(iaddr);
+    }
+
+    function _bytesCheck(bytes calldata dataBytes)
+        private
+        pure
+        returns (address erc)
+    {
+        if (
+            dataBytes.length > 11 &&
+            keccak256(abi.encodePacked(dataBytes[:11])) ==
+            keccak256(abi.encodePacked(string("CUSTOMTOKEN")))
+        ) {
+            erc = _bytesToAddress(dataBytes[11:]);
         }
     }
 }
