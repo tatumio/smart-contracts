@@ -18,9 +18,9 @@ contract('Tatum721Provenance', async function (accounts) {
 
         it('check ERC721 transfer data with cashback', async function () {
             const token = await ERC721.new(name, symbol);
-            await token.mintWithTokenURI(a1, "1", "test.com", [],[],[])
+            await token.mintWithTokenURI(a1, "1", "test.com", [], [], [])
 
-            const c = await token.safeTransfer(a2, "1", "0x74657374696e6727272723232327272731303030",{ from: a1, value: 102000 })
+            const c = await token.safeTransfer(a2, "1", "0x74657374696e6727272723232327272731303030", { from: a1, value: 102000 })
             expectEvent(c, 'TransferWithProvenance', {
                 id: "1",
                 owner: a2,
@@ -36,13 +36,13 @@ contract('Tatum721Provenance', async function (accounts) {
 
             const erc = await ERC20Mock.new(name, symbol, a1, initialSupply);
 
-            let bufStr = Buffer.from(("CUSTOMTOKEN" + erc.address + `'''###'''1`), 'utf8');
+            let bufStr = Buffer.from(("CUSTOMTOKEN" + erc.address + `'''###'''1000`), 'utf8');
             const token = await ERC721Mock.new(name, symbol);
             await erc.transfer(a3, 20000, { from: a1 });
             await erc.approve(token.address, 20000, { from: a1 });
 
             await token.mintMultiple([a1, a1], ["1", "2"], ["test.com", "test.com"]);
-            await token.safeTransfer(a2, "1", '0x' + bufStr.toString('hex'), { from: a1 })
+            await token.safeTransfer(a2, "1", { from: a1 })
             await token.approve(a2, '2', { from: a1 })
             await erc.approve(token.address, 2000, { from: a3 });
             await token.safeTransferFrom(a1, a3, "2", '0x' + bufStr.toString('hex', { from: a2 }))
@@ -60,9 +60,9 @@ contract('Tatum721Provenance', async function (accounts) {
             await erc.transfer(a3, 20000, { from: a1 });
             await erc.approve(token.address, 20000, { from: a1 });
             await erc.transfer(token.address, 20000, { from: a1 });
-                        
-            await token.mintMultiple([a1, a1], ["1", "2"], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]],erc.address);
-            await token.safeTransfer(a2, "1", '0x' + bufStr.toString('hex'), { from: a1})
+
+            await token.mintMultiple([a1, a1], ["1", "2"], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], erc.address);
+            await token.safeTransfer(a2, "1", '0x' + bufStr.toString('hex'), { from: a1 })
 
             await token.approve(a2, '2', { from: a1 })
             await erc.approve(token.address, 2000, { from: a3 });

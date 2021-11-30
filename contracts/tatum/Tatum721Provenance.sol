@@ -89,6 +89,7 @@ contract Tatum721Provenance is
             _fixedValues[tokenId] = fValues;
         }
     }
+
     function mintMultiple(
         address[] memory to,
         uint256[] memory tokenId,
@@ -105,8 +106,17 @@ contract Tatum721Provenance is
         for (uint256 i; i < to.length; i++) {
             _customToken[tokenId[i]] = erc20;
         }
-        return mintMultiple(to, tokenId, uri, recipientAddresses, cashbackValues, fValues);
+        return
+            mintMultiple(
+                to,
+                tokenId,
+                uri,
+                recipientAddresses,
+                cashbackValues,
+                fValues
+            );
     }
+
     function mintMultiple(
         address[] memory to,
         uint256[] memory tokenId,
@@ -151,6 +161,15 @@ contract Tatum721Provenance is
         returns (string memory)
     {
         return ERC721URIStorage.tokenURI(tokenId);
+    }
+
+    function getCashbackAddress(uint256 tokenId)
+        public
+        view
+        virtual
+        returns (address)
+    {
+        return _customToken[tokenId];
     }
 
     function getTokenData(uint256 tokenId)
@@ -284,7 +303,10 @@ contract Tatum721Provenance is
                         payable(msg.sender).transfer(msg.value - sum);
                     }
                 } else {
-                    cbvalue = _cashbackCalculator(cbvalue, _fixedValues[tokenId][i]);
+                    cbvalue = _cashbackCalculator(
+                        cbvalue,
+                        _fixedValues[tokenId][i]
+                    );
                     token.transferFrom(
                         msg.sender,
                         _cashbackRecipients[tokenId][i],
@@ -310,28 +332,32 @@ contract Tatum721Provenance is
     ) public payable virtual override {
         uint256 index;
         uint256 value;
-        uint256 sum;
+        uint256 percentSum;
         IERC20 token;
         (index, value) = _bytesCheck(dataBytes);
 
-        if(_customToken[tokenId]!=address(0)){
-            token= IERC20(_customToken[tokenId]);
+        if (_customToken[tokenId] != address(0)) {
+            token = IERC20(_customToken[tokenId]);
         }
         if (_cashbackRecipients[tokenId].length > 0) {
-            uint256 percentSum;
             for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
-                percentSum += _cashbackValues[tokenId][i];
+                uint256 iPercent = (_cashbackValues[tokenId][i] * value) /
+                    10000;
+                if (iPercent >= _fixedValues[tokenId][i]) {
+                    percentSum += iPercent;
+                } else {
+                    percentSum += _fixedValues[tokenId][i];
+                }
             }
-            sum = (percentSum * value) / 10000;
             if (_customToken[tokenId] == address(0)) {
-                if (sum > msg.value) {
+                if (percentSum > msg.value) {
                     payable(from).transfer(msg.value);
                     revert(
                         "Value should be greater than or equal to cashback value"
                     );
                 }
             } else {
-                if (sum > token.allowance(to, address(this))) {
+                if (percentSum > token.allowance(to, address(this))) {
                     revert(
                         "Insufficient ERC20 allowance balance for paying for the asset."
                     );
@@ -341,21 +367,20 @@ contract Tatum721Provenance is
                 // transferring cashback to authors
                 uint256 cbvalue = (_cashbackValues[tokenId][i] * value) / 10000;
                 if (_customToken[tokenId] == address(0)) {
-                    if (cbvalue >= _fixedValues[tokenId][i]) {
-                        payable(_cashbackRecipients[tokenId][i]).transfer(
-                            cbvalue
-                        );
-                    } else if (cbvalue < _fixedValues[tokenId][i]) {
-                        payable(_cashbackRecipients[tokenId][i]).transfer(
-                            (_fixedValues[tokenId][i])
-                        );
-                    }
-                    if (msg.value > sum) {
-                        payable(from).transfer(msg.value - sum);
+                    cbvalue = _cashbackCalculator(
+                        cbvalue,
+                        _fixedValues[tokenId][i]
+                    );
+                    payable(_cashbackRecipients[tokenId][i]).transfer(cbvalue);
+                    if (msg.value > percentSum) {
+                        payable(from).transfer(msg.value - percentSum);
                     }
                 } else {
-                    cbvalue = _cashbackCalculator(cbvalue,_fixedValues[tokenId][i]);
-                    
+                    cbvalue = _cashbackCalculator(
+                        cbvalue,
+                        _fixedValues[tokenId][i]
+                    );
+
                     token.transferFrom(
                         to,
                         _cashbackRecipients[tokenId][i],
@@ -387,10 +412,7 @@ contract Tatum721Provenance is
     function _bytesCheck(bytes calldata dataBytes)
         private
         pure
-        returns (
-            uint256 index,
-            uint256 value
-        )
+        returns (uint256 index, uint256 value)
     {
         for (uint256 i = 0; i < dataBytes.length; i++) {
             if (
