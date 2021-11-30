@@ -18,6 +18,7 @@ contract Tatum721 is
     mapping(uint256 => address[]) private _cashbackRecipients;
     mapping(uint256 => uint256[]) private _cashbackValues;
     mapping(uint256 => address) private _customToken;
+
     constructor(string memory name_, string memory symbol_)
         ERC721(name_, symbol_)
     {
@@ -132,6 +133,16 @@ contract Tatum721 is
         }
         return true;
     }
+
+    function getCashbackAddress(uint256 tokenId)
+        public
+        view
+        virtual
+        returns (address)
+    {
+        return _customToken[tokenId];
+    }
+
     function mintMultipleCashback(
         address[] memory to,
         uint256[] memory tokenId,
@@ -140,12 +151,23 @@ contract Tatum721 is
         uint256[][] memory cashbackValues,
         address erc20
     ) public returns (bool) {
-        require(erc20!=address(0), "Custom cashbacks cannot be set to 0 address");
+        require(
+            erc20 != address(0),
+            "Custom cashbacks cannot be set to 0 address"
+        );
         for (uint256 i = 0; i < tokenId.length; i++) {
-            _customToken[tokenId[i]]=erc20;
+            _customToken[tokenId[i]] = erc20;
         }
-        return mintMultipleCashback(to,tokenId,uri,recipientAddresses,cashbackValues);
+        return
+            mintMultipleCashback(
+                to,
+                tokenId,
+                uri,
+                recipientAddresses,
+                cashbackValues
+            );
     }
+
     function mintMultipleCashback(
         address[] memory to,
         uint256[] memory tokenId,
@@ -165,18 +187,30 @@ contract Tatum721 is
         }
         return true;
     }
+
     function mintWithCashback(
-            address to,
-            uint256 tokenId,
-            string memory uri,
-            address[] memory recipientAddresses,
-            uint256[] memory cashbackValues,
-            address erc20
-        ) public returns (bool) {
-            require(erc20!=address(0), "Custom cashbacks cannot be set to 0 address");
-            _customToken[tokenId]=erc20;
-            return mintWithCashback(to,tokenId,uri,recipientAddresses,cashbackValues);
-        }
+        address to,
+        uint256 tokenId,
+        string memory uri,
+        address[] memory recipientAddresses,
+        uint256[] memory cashbackValues,
+        address erc20
+    ) public returns (bool) {
+        require(
+            erc20 != address(0),
+            "Custom cashbacks cannot be set to 0 address"
+        );
+        _customToken[tokenId] = erc20;
+        return
+            mintWithCashback(
+                to,
+                tokenId,
+                uri,
+                recipientAddresses,
+                cashbackValues
+            );
+    }
+
     function mintWithCashback(
         address to,
         uint256 tokenId,
@@ -205,12 +239,8 @@ contract Tatum721 is
         _burn(tokenId);
     }
 
-    function safeTransfer(
-        address to,
-        uint256 tokenId,
-        bytes calldata dataBytes
-    ) public payable {
-        address erc = _bytesCheck(dataBytes);
+    function safeTransfer(address to, uint256 tokenId) public payable {
+        address erc = _customToken[tokenId];
         IERC20 token;
         if (erc != address(0)) {
             token = IERC20(erc);
@@ -284,9 +314,9 @@ contract Tatum721 is
         address from,
         address to,
         uint256 tokenId,
-        bytes calldata dataBytes
+        bytes memory bytesData
     ) public payable virtual override {
-        address erc = _bytesCheck(dataBytes);
+        address erc = _customToken[tokenId];
         IERC20 token;
         if (erc != address(0)) {
             token = IERC20(erc);
@@ -347,57 +377,12 @@ contract Tatum721 is
                     payable(msg.sender).transfer(msg.value);
                 }
             }
-            _safeTransfer(from, to, tokenId, "");
+            _safeTransfer(from, to, tokenId, bytesData);
         } else {
             if (msg.value > 0) {
                 payable(from).transfer(msg.value);
             }
-            _safeTransfer(from, to, tokenId, "");
-        }
-    }
-
-    function _bytesToAddress(bytes calldata tmp)
-        internal
-        pure
-        returns (address _parsedAddress)
-    {
-        uint160 iaddr = 0;
-        uint160 b1;
-        uint160 b2;
-        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
-            iaddr *= 256;
-            b1 = uint160(uint8(tmp[i]));
-            b2 = uint160(uint8(tmp[i + 1]));
-            if ((b1 >= 97) && (b1 <= 102)) {
-                b1 -= 87;
-            } else if ((b1 >= 65) && (b1 <= 70)) {
-                b1 -= 55;
-            } else if ((b1 >= 48) && (b1 <= 57)) {
-                b1 -= 48;
-            }
-            if ((b2 >= 97) && (b2 <= 102)) {
-                b2 -= 87;
-            } else if ((b2 >= 65) && (b2 <= 70)) {
-                b2 -= 55;
-            } else if ((b2 >= 48) && (b2 <= 57)) {
-                b2 -= 48;
-            }
-            iaddr += (b1 * 16 + b2);
-        }
-        return address(iaddr);
-    }
-
-    function _bytesCheck(bytes calldata dataBytes)
-        private
-        pure
-        returns (address erc)
-    {
-        if (
-            dataBytes.length > 11 &&
-            keccak256(abi.encodePacked(dataBytes[:11])) ==
-            keccak256(abi.encodePacked(string("CUSTOMTOKEN")))
-        ) {
-            erc = _bytesToAddress(dataBytes[11:]);
+            _safeTransfer(from, to, tokenId, bytesData);
         }
     }
 }

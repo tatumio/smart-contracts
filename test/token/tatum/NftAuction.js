@@ -4,7 +4,7 @@ const { BigNumber } = require("ethers");
 const { ZERO_ADDRESS } = constants;
 
 const NftAuction = artifacts.require('NftAuction');
-const ERC721Mock = artifacts.require('ERC721Mock');
+const ERC721Mock = artifacts.require('Tatum721');
 const ERC1155Mock = artifacts.require('ERC1155Mock');
 const ERC20Mock = artifacts.require('ERC20Mock');
 const ERC721Provenance = artifacts.require('Tatum721Provenance')
@@ -30,7 +30,7 @@ contract('NftAuction', function (accounts) {
             expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mint(seller, tokenId);
+            await token.mintWithTokenURI(seller, tokenId,'test.com');
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
@@ -85,6 +85,86 @@ contract('NftAuction', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
             expect((await balance.current(marketOwner)).toString()).to.be.equal(BigNumber.from(marketBalance).add(102).toString())
             expect((await balance.current(seller)).toString()).to.be.equal(BigNumber.from(sellerBalance).add(10098).toString())
+        });
+        it('create OK ERC721 Provenance auction for ERC20 asset with eth cashbacks', async function () {
+            const token = await ERC721Provenance.new(name, symbol);
+            const fee = new BN(100); // 1%
+
+            const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
+            expect((await erc20.balanceOf(buyer)).toString()).to.be.equal('1000000')
+
+            const auction = await NftAuction.new(200, marketOwner);
+            expect((await auction.getAuctionFee()).toString()).to.equal(new BN(200).toString());
+            expect((await balance.current(auction.address, 'ether')).toString()).to.be.equal('0')
+
+            await auction.setAuctionFee(fee);
+            expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
+
+            const tokenId = new BN(1);
+            await token.mintMultiple([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]]);
+
+            const nftAddress = token.address;
+            await erc20.transfer(auction.address, new BN(101000), { from: buyer })
+            // await erc20.approve(token.address, new BN(101000), { from: buyer })
+
+            await token.approve(auction.address, tokenId, { from: seller });
+            expect(await token.allowance(auction.address, tokenId)).to.be.equal(true);
+            const endedAt = (await time.latestBlock()).add(new BN(10));
+            // await token.approve(auction.address, tokenId, {from: seller});
+            // expect(await token.ownerOf(tokenId)).to.be.equal(seller);
+
+            const c = await auction.createAuction('1', true, nftAddress, tokenId, seller, 1, endedAt, erc20.address)
+            expectEvent(c, 'AuctionCreated', {
+                isErc721: true,
+                nftAddress,
+                tokenId,
+                amount: new BN(1),
+                erc20Address: erc20.address,
+                endedAt,
+            })
+
+            await time.advanceBlock();
+            let auctions = await auction.getAuction('1');
+            expect(auctions[0]).to.be.equal(seller);
+            expect(auctions[1]).to.be.equal(nftAddress);
+            expect(auctions[2]).to.be.equal('1');
+            expect(auctions[3]).to.be.equal(true);
+            expect(auctions[6]).to.be.equal(erc20.address);
+            expect(auctions[7]).to.be.equal('1');
+            expect(auctions[8]).to.be.equal('0');
+            expect(auctions[9]).to.be.equal(ZERO_ADDRESS);
+
+            await erc20.approve(auction.address, new BN(10100), { from: buyer })
+            expect((await erc20.balanceOf(seller)).toString()).to.be.equal('0')
+            expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
+            expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('101000')
+            expect((await balance.current(auction.address)).toString()).to.be.equal('0')
+            const b = await auction.bid('1', 10100, { from: buyer , value:20});
+            
+            auctions = await auction.getAuction('1');
+            expect(auctions[2]).to.be.equal('1');
+            expect(auctions[8]).to.be.equal('10000');
+            expect(auctions[9]).to.be.equal(buyer);
+            expectEvent(b, 'AuctionBid', {
+                buyer,
+            })
+            const auctionBalance=(await balance.current(auction.address, 'ether'));
+            expect(await token.allowance(auction.address, tokenId)).to.be.equal(true);
+            expect((await erc20.balanceOf(seller)).toString()).to.be.equal('0')
+            expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
+            expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('111100')
+
+            await time.advanceBlockTo(endedAt.add(new BN(1)))
+            
+
+            expect((await balance.current(a1, 'ether')).toString()).to.be.equal('10000')
+            expect((await balance.current(a2, 'ether')).toString()).to.be.equal('10000')
+            // expect((await balance.current(auction.address, 'ether')).toString()).to.be.equal('40')
+            const s = await auction.settleAuction('1');
+            expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
+            expect((await erc20.balanceOf(seller)).toString()).to.be.equal('9999')
+            expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('101')
+            expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('101000')
         });
         it('create OK ERC721 Provenance auction for ERC20 asset with cashbacks', async function () {
             const token = await ERC721Provenance.new(name, symbol);
@@ -174,7 +254,7 @@ contract('NftAuction', function (accounts) {
             expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mint(seller, tokenId);
+            await token.mintWithTokenURI(seller, tokenId,"test.com");
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
@@ -375,7 +455,7 @@ contract('NftAuction', function (accounts) {
             const auction = await NftAuction.new(200, marketOwner);
 
             const tokenId = new BN(1);
-            await token.mint(seller, tokenId);
+            await token.mintWithTokenURI(seller, tokenId,"test.com");
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
@@ -444,7 +524,7 @@ contract('NftAuction', function (accounts) {
             expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mint(seller, tokenId);
+            await token.mintWithTokenURI(seller, tokenId,"test.com");
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));

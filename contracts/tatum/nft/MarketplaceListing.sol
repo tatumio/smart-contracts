@@ -9,6 +9,22 @@ import "../../token/ERC1155/IERC1155.sol";
 import "../../access/Ownable.sol";
 import "../../utils/Address.sol";
 
+contract Tatum {
+    function tokenCashbackValues(uint256 tokenId)
+        public
+        view
+        virtual
+        returns (uint256[] memory)
+    {}
+
+    function getCashbackAddress(uint256 tokenId)
+        public
+        view
+        virtual
+        returns (address)
+    {}
+}
+
 contract MarketplaceListing is Ownable {
     using Address for address;
 
@@ -149,7 +165,7 @@ contract MarketplaceListing is Ownable {
         address seller,
         uint256 amount,
         address erc20Address
-    ) public {
+    ) public payable {
         if (
             keccak256(abi.encodePacked(_listings[listingId].listingId)) ==
             keccak256(abi.encodePacked(listingId))
@@ -167,6 +183,25 @@ contract MarketplaceListing is Ownable {
                 IERC721(nftAddress).ownerOf(tokenId) == seller,
                 "ERC721 token does not belong to the author."
             );
+            if (Tatum(nftAddress).getCashbackAddress(tokenId) == address(0)) {
+                uint256 cashbackSum = 0;
+                uint256[] memory cashback = Tatum(nftAddress)
+                    .tokenCashbackValues(tokenId);
+                for (uint256 j = 0; j < cashback.length; j++) {
+                    cashbackSum += cashback[j];
+                }
+                require(
+                    msg.value >= cashbackSum,
+                    "Balance Insufficient to pay royalties"
+                );
+                Address.sendValue(payable(address(this)), cashbackSum);
+                if (msg.value > cashbackSum) {
+                    Address.sendValue(
+                        payable(msg.sender),
+                        msg.value - cashbackSum
+                    );
+                }
+            }
         }
         Listing memory listing = Listing(
             listingId,
@@ -248,6 +283,17 @@ contract MarketplaceListing is Ownable {
         listing.state = State.SOLD;
         listing.buyer = msg.sender;
         _listings[listingId] = listing;
+        uint256 cashbackSum = 0;
+        if (
+            Tatum(listing.nftAddress).getCashbackAddress(listing.tokenId) ==
+            address(0)
+        ) {
+            uint256[] memory cashback = Tatum(listing.nftAddress)
+                .tokenCashbackValues(listing.tokenId);
+            for (uint256 j = 0; j < cashback.length; j++) {
+                cashbackSum += cashback[j];
+            }
+        }
         if (listing.erc20Address == address(0)) {
             if (listing.price + fee > msg.value) {
                 if (msg.value > 0) {
@@ -265,7 +311,9 @@ contract MarketplaceListing is Ownable {
                 );
             }
             if (listing.isErc721) {
-                IERC721(listing.nftAddress).safeTransferFrom(
+                IERC721(listing.nftAddress).safeTransferFrom{
+                    value: cashbackSum
+                }(
                     listing.seller,
                     msg.sender,
                     listing.tokenId,
@@ -308,12 +356,9 @@ contract MarketplaceListing is Ownable {
                     "'''###'''",
                     _uint2str(listing.amount)
                 );
-                IERC721(listing.nftAddress).safeTransferFrom(
-                    listing.seller,
-                    msg.sender,
-                    listing.tokenId,
-                    bytesInput
-                );
+                IERC721(listing.nftAddress).safeTransferFrom{
+                    value: cashbackSum
+                }(listing.seller, msg.sender, listing.tokenId, bytesInput);
             } else {
                 IERC1155(listing.nftAddress).safeTransferFrom(
                     address(this),
@@ -475,6 +520,18 @@ contract MarketplaceListing is Ownable {
                 listing.amount,
                 ""
             );
+        } else {
+            if (listing.erc20Address == address(0)) {
+                uint256 cashbackSum = 0;
+                uint256[] memory cashback = Tatum(listing.nftAddress)
+                    .tokenCashbackValues(listing.tokenId);
+                for (uint256 j = 0; j < cashback.length; j++) {
+                    cashbackSum += cashback[j];
+                }
+                if (cashbackSum > 0) {
+                    Address.sendValue(payable(listing.seller), cashbackSum);
+                }
+            }
         }
 
         emit ListingCancelled(listingId);
