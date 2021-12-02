@@ -42,7 +42,7 @@ contract CustodialWallet is CustodialOwnable {
         @param amount - amount to be transferred in the asset based of the contractType, for ERC721 not important
         @param tokenId - tokenId to transfer, valid only for ERC721 and ERC1155
     **/
-    function transfer(address tokenAddress, uint256 contractType, address recipient, uint256 amount, uint256 tokenId) public payable {
+    function transfer(address tokenAddress, uint256 contractType, address recipient, uint256 amount, uint256 tokenId) public payable onlyOwner {
         if (contractType == 0) {
             IERC20(tokenAddress).transfer(recipient, amount);
         } else if (contractType == 1) {
@@ -69,7 +69,7 @@ contract CustodialWallet is CustodialOwnable {
         @param amount - amount to be transferred in the asset based of the contractType, for ERC721 not important
         @param tokenId - tokenId to transfer, valid only for ERC721 and ERC1155
     **/
-    function transferBatch(address[] memory tokenAddress, uint256[] memory contractType, address[] memory recipient, uint256[] memory amount, uint256[] memory tokenId) public payable {
+    function transferBatch(address[] memory tokenAddress, uint256[] memory contractType, address[] memory recipient, uint256[] memory amount, uint256[] memory tokenId) public payable onlyOwner {
         require(tokenAddress.length == contractType.length);
         require(recipient.length == contractType.length);
         require(recipient.length == amount.length);
@@ -101,7 +101,7 @@ contract CustodialWallet is CustodialOwnable {
         @param amount - amount to be approved to spend in the asset based of the contractType
         @param tokenId - tokenId to transfer, valid only for ERC721 and ERC1155
     **/
-    function approve(address tokenAddress, uint256 contractType, address spender, uint256 amount, uint256 tokenId) public virtual {
+    function approve(address tokenAddress, uint256 contractType, address spender, uint256 amount, uint256 tokenId) public virtual onlyOwner {
         if (contractType == 0) {
             IERC20(tokenAddress).approve(spender, amount);
         } else if (contractType == 1) {
