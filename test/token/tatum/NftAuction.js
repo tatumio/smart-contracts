@@ -150,7 +150,6 @@ contract('NftAuction', function (accounts) {
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('111100')
 
             await time.advanceBlockTo(endedAt.add(new BN(1)))
-
             // expect((await balance.current(auction.address, 'ether')).toString()).to.be.equal('40')
             const s = await auction.settleAuction('1');
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);

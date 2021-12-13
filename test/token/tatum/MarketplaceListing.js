@@ -19,7 +19,7 @@ contract('MarketplaceListing', function (accounts) {
 
     describe('Should pass OK marketplace journeys', () => {
         it('create OK ERC721 listing for native asset', async function () {
-            const token = await Tatum721Mock.new(name, symbol,false);
+            const token = await Tatum721Mock.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const marketplace = await MarketplaceListing.new(200, marketOwner);
@@ -62,7 +62,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
         });
         it('create OK ERC721 listing for ERC20 asset', async function () {
-            const token = await Tatum721Mock.new(name, symbol,false);
+            const token = await Tatum721Mock.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -111,7 +111,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
         });
         it('create OK ERC721 listing for ERC20 asset with cashback', async function () {
-            const token = await Tatum721Mock.new(name, symbol,false);
+            const token = await Tatum721Mock.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -163,7 +163,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
         });
         it('create OK ERC721 listing for native asset but erc cashback', async function () {
-            const token = await Tatum721Mock.new(name, symbol,false);
+            const token = await Tatum721Mock.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -205,7 +205,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
         });
         it('create OK ERC721 listing for erc asset but native cashback', async function () {
-            const token = await Tatum721Mock.new(name, symbol,false);
+            const token = await Tatum721Mock.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -246,7 +246,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
         });
         it('create OK ERC721 Provenance listing for erc asset but native cashback', async function () {
-            const token = await ERC721Provenance.new(name, symbol,false);
+            const token = await ERC721Provenance.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -287,7 +287,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
         });
         it('create OK ERC721 Provenance listing for native asset but erc cashback', async function () {
-            const token = await ERC721Provenance.new(name, symbol,false);
+            const token = await ERC721Provenance.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -329,7 +329,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
         });
         it('create OK ERC721 Provenance listing for native asset', async function () {
-            const token = await ERC721Provenance.new(name, symbol,false);
+            const token = await ERC721Provenance.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const marketplace = await MarketplaceListing.new(200, marketOwner);
@@ -365,7 +365,7 @@ contract('MarketplaceListing', function (accounts) {
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
         });
         it('create OK ERC721 Provenance listing for ERC20 asset', async function () {
-            const token = await ERC721Provenance.new(name, symbol,false);
+            const token = await ERC721Provenance.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -422,7 +422,7 @@ contract('MarketplaceListing', function (accounts) {
             const token = await ERC1155Mock.new('https://token-cdn-domain/{id}.json');
             const fee = new BN(100); // 1%
 
-            
+
             const marketplace = await MarketplaceListing.new(200, marketOwner1155);
             expect((await marketplace.getMarketplaceFee()).toString()).to.equal(new BN(200).toString());
             await marketplace.setMarketplaceFee(fee);
@@ -518,7 +518,7 @@ contract('MarketplaceListing', function (accounts) {
     });
     describe('Should pass CANCELLED marketplace journeys', () => {
         it('cancel OK ERC721 listing for native asset from seller', async function () {
-            const token = await Tatum721Mock.new(name, symbol,false);
+            const token = await Tatum721Mock.new(name, symbol, false);
             const marketplace = await MarketplaceListing.new(200, marketOwner);
 
             const tokenId = new BN(1);
@@ -549,7 +549,7 @@ contract('MarketplaceListing', function (accounts) {
             expectEvent(b, 'ListingCancelled')
         });
         it('cancel OK ERC721 listing for native asset from owner', async function () {
-            const token = await Tatum721Mock.new(name, symbol,false);
+            const token = await Tatum721Mock.new(name, symbol, false);
 
             const marketplace = await MarketplaceListing.new(200, marketOwner);
 
@@ -581,7 +581,7 @@ contract('MarketplaceListing', function (accounts) {
             expectEvent(b, 'ListingCancelled')
         });
         it('cancel not OK ERC721 listing for native asset from buyer', async function () {
-            const token = await Tatum721Mock.new(name, symbol,false);
+            const token = await Tatum721Mock.new(name, symbol, false);
 
             const marketplace = await MarketplaceListing.new(200, marketOwner);
 

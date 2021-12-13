@@ -11,13 +11,13 @@ contract('Tatum721Provenance', async function (accounts) {
     describe('Should pass OK for ERC721', () => {
 
         it('check ERC721 metadata', async function () {
-            const token = await ERC721.new(name, symbol,false);
+            const token = await ERC721.new(name, symbol, false);
             expect((await token.name()).toString()).to.be.equal(name)
             expect((await token.symbol()).toString()).to.be.equal(symbol)
         });
 
         it('check ERC721 transfer data with cashback', async function () {
-            const token = await ERC721.new(name, symbol,false);
+            const token = await ERC721.new(name, symbol, false);
             await token.mintWithTokenURI(a1, "1", "test.com", [], [], [])
 
             const c = await token.safeTransfer(a2, "1", "0x74657374696e6727272723232327272731303030", { from: a1, value: 102000 })
@@ -37,7 +37,7 @@ contract('Tatum721Provenance', async function (accounts) {
             const erc = await ERC20Mock.new(name, symbol, a1, initialSupply);
 
             let bufStr = Buffer.from(("CUSTOMTOKEN" + erc.address + `'''###'''1000`), 'utf8');
-            const token = await ERC721Mock.new(name, symbol,false);
+            const token = await ERC721Mock.new(name, symbol, false);
             await erc.transfer(a3, 20000, { from: a1 });
             await erc.approve(token.address, 20000, { from: a1 });
 
@@ -56,7 +56,7 @@ contract('Tatum721Provenance', async function (accounts) {
             const erc = await ERC20Mock.new(name, symbol, a3, initialSupply);
 
             let bufStr = Buffer.from(("CUSTOMTOKEN" + erc.address + `'''###'''1000`), 'utf8');
-            const token = await ERC721.new(name, symbol,false);
+            const token = await ERC721.new(name, symbol, false);
 
             await erc.approve(token.address, 2000000, { from: a3 });
 

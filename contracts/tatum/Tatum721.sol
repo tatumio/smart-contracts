@@ -18,7 +18,7 @@ contract Tatum721 is
     mapping(uint256 => address[]) private _cashbackRecipients;
     mapping(uint256 => uint256[]) private _cashbackValues;
     mapping(uint256 => address) private _customToken;
-    bool _publicMint=false;
+    bool _publicMint;
     constructor(string memory name_, string memory symbol_,bool publicMint)
         ERC721(name_, symbol_)
     {
