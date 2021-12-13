@@ -59,6 +59,8 @@ contract NftAuction is Ownable, Pausable {
 
     uint256 private _auctionCount = 0;
 
+    string[] private _openAuctions;
+
     // in percents, what's the fee for the auction house, 1% - 100, 100% - 10000, range 1-10000 means 0.01% - 100%
     uint256 private _auctionFee;
     // recipient of the auction fee
@@ -131,7 +133,14 @@ contract NftAuction is Ownable, Pausable {
     function getAuctionFee() public view virtual returns (uint256) {
         return _auctionFee;
     }
-
+    function getOpenAuctions()
+                public
+                view
+                virtual
+                returns (string[] memory)
+        {
+            return _openAuctions;
+        }
     function getAuctionFeeRecipient() public view virtual returns (address) {
         return _auctionFeeRecipient;
     }
@@ -346,6 +355,7 @@ contract NftAuction is Ownable, Pausable {
             0
         );
         _auctions[id] = auction;
+        _openAuctions.push(id);
         emit AuctionCreated(
             isErc721,
             nftAddress,
@@ -578,11 +588,23 @@ contract NftAuction is Ownable, Pausable {
             auction.erc20Address
         );
         _transferAssets(erc20Address, highestBid, auction.seller, true);
-
+        _toRemove(id);
         _auctionCount--;
         emit AuctionSettled(id);
     }
-
+    function _toRemove(string memory id) internal {
+            for(uint x=0;x<_openAuctions.length;x++){
+                if (
+                keccak256(abi.encodePacked(_openAuctions[x])) ==
+                keccak256(abi.encodePacked(id))
+                ){
+                for (uint i = x; i < _openAuctions.length - 1; i++) {
+                        _openAuctions[i] = _openAuctions[i + 1];
+                    }
+                _openAuctions.pop();
+                }
+            }
+        }
     /**
      * @dev Cancel auction - returns the NFT asset to the seller.
      * @param id - id of the auction to cancel
@@ -630,6 +652,7 @@ contract NftAuction is Ownable, Pausable {
             Address.sendValue(payable(bidder), cashbackSum);
         }
         _auctionCount--;
+        _toRemove(id);
         emit AuctionCancelled(id);
     }
 

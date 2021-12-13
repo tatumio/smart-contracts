@@ -6,10 +6,12 @@ import "../token/ERC721/extensions/ERC721Enumerable.sol";
 import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
 import "../token/ERC20/IERC20.sol";
+import "../utils/introspection/ERC2981.sol";
 
 contract Tatum721 is
     ERC721Enumerable,
     ERC721URIStorage,
+    ERC2981,
     AccessControlEnumerable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -49,12 +51,20 @@ contract Tatum721 is
         _setTokenURI(tokenId, uri);
         return true;
     }
-
+    function royaltyInfo(uint256 tokenId, uint256 value)
+            external
+            view
+            override
+            returns (address, uint256)
+        {
+            require(value >= 1, "value should be greater than or equal to 1");
+            return (_cashbackRecipients[tokenId][0], _cashbackValues[tokenId][0]);
+        }
     function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
-        override(AccessControlEnumerable, ERC721, ERC721Enumerable)
+        override(AccessControlEnumerable, ERC721, ERC721Enumerable, ERC2981)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

@@ -49,10 +49,9 @@ contract MarketplaceListing is Ownable {
 
     // List of all listings in the marketplace. All historical ones are here as well.
     mapping(string => Listing) private _listings;
-
+    string[] private _openListings;
     uint256 private _marketplaceFee;
     address private _marketplaceFeeRecipient;
-
     /**
      * @dev Emitted when new listing is created by the owner of the contract. Amount is valid only for ERC-1155 tokens
      */
@@ -133,11 +132,17 @@ contract MarketplaceListing is Ownable {
     {
         return _listings[listingId];
     }
-
+    function getOpenListings()
+            public
+            view
+            virtual
+            returns (string[] memory)
+    {
+        return _openListings;
+    }
     function setMarketplaceFee(uint256 fee) public virtual onlyOwner {
         _marketplaceFee = fee;
     }
-
     function setMarketplaceFeeRecipient(address recipient)
         public
         virtual
@@ -216,6 +221,7 @@ contract MarketplaceListing is Ownable {
             address(0)
         );
         _listings[listingId] = listing;
+        _openListings.push(listingId);
         emit ListingCreated(
             isErc721,
             nftAddress,
@@ -371,9 +377,22 @@ contract MarketplaceListing is Ownable {
                 );
             }
         }
+        _toRemove(listingId);
         emit ListingSold(msg.sender, listingId);
     }
-
+    function _toRemove(string memory listingId) internal {
+        for(uint x=0;x<_openListings.length;x++){
+            if (
+            keccak256(abi.encodePacked(_openListings[x])) ==
+            keccak256(abi.encodePacked(listingId))
+            ){
+            for (uint i = x; i < _openListings.length - 1; i++) {
+                    _openListings[i] = _openListings[i + 1];
+                }
+            _openListings.pop();
+            }
+        }
+    }
     function _toAsciiString(address x) internal pure returns (bytes memory) {
         bytes memory s = new bytes(40);
         for (uint256 i = 0; i < 20; i++) {
@@ -495,6 +514,7 @@ contract MarketplaceListing is Ownable {
                 ""
             );
         }
+        _toRemove(listingId);
         emit ListingSold(buyer, listingId);
     }
 
@@ -535,7 +555,7 @@ contract MarketplaceListing is Ownable {
                 }
             }
         }
-
+        _toRemove(listingId);
         emit ListingCancelled(listingId);
     }
 }

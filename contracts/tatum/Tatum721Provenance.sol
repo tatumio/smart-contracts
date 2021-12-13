@@ -5,9 +5,10 @@ import "../token/ERC721/extensions/ERC721Enumerable.sol";
 import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
 import "../token/ERC20/IERC20.sol";
-
+import "../utils/introspection/ERC2981.sol";
 contract Tatum721Provenance is
     ERC721Enumerable,
+    ERC2981,
     ERC721URIStorage,
     AccessControlEnumerable
 {
@@ -32,7 +33,17 @@ contract Tatum721Provenance is
         _setupRole(MINTER_ROLE, _msgSender());
         _publicMint=publicMint;
     }
-
+    function royaltyInfo(uint256 tokenId, uint256 value)
+        external
+        view
+        override
+        returns (address, uint256)
+    {
+        uint256 result;
+        uint256 cbvalue = (_cashbackValues[tokenId][0] * value) / 10000;
+        result=_cashbackCalculator(cbvalue,_fixedValues[tokenId][0]);
+        return (_cashbackRecipients[tokenId][0],result);
+    }
     function _appendTokenData(uint256 tokenId, string calldata tokenData)
         internal
         virtual
@@ -152,7 +163,7 @@ contract Tatum721Provenance is
         public
         view
         virtual
-        override(AccessControlEnumerable, ERC721, ERC721Enumerable)
+        override(AccessControlEnumerable, ERC721, ERC721Enumerable, ERC2981)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
