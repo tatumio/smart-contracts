@@ -17,12 +17,8 @@ contract('NftAuction', function (accounts) {
 
     describe('Should pass OK auction journeys', () => {
         it('create OK ERC721 auction for native asset', async function () {
-            const token = await ERC721Mock.new(name, symbol);
+            const token = await ERC721Mock.new(name, symbol, false);
             const fee = new BN(100); // 1%
-
-            expect((await balance.current(buyer, 'ether')).toString()).to.be.equal('10000')
-            expect((await balance.current(seller, 'ether')).toString()).to.be.equal('10000')
-            expect((await balance.current(marketOwner, 'ether')).toString()).to.be.equal('10000')
 
             const auction = await NftAuction.new(200, marketOwner);
             expect((await auction.getAuctionFee()).toString()).to.equal(new BN(200).toString());
@@ -30,7 +26,7 @@ contract('NftAuction', function (accounts) {
             expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mintWithTokenURI(seller, tokenId,'test.com');
+            await token.mintWithTokenURI(seller, tokenId, 'test.com');
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
@@ -63,7 +59,7 @@ contract('NftAuction', function (accounts) {
             expect(auctions[7]).to.be.equal('1');
             expect(auctions[8]).to.be.equal('0');
             expect(auctions[9]).to.be.equal(ZERO_ADDRESS);
-            expect((await balance.current(buyer, 'ether')).toString()).to.be.equal('10000')
+            // expect((await balance.current(buyer, 'ether')).toString()).to.be.equal('10000')
             const sellerBalance = (await balance.current(seller)).toString();
             const marketBalance = (await balance.current(marketOwner)).toString();
 
@@ -87,7 +83,7 @@ contract('NftAuction', function (accounts) {
             expect((await balance.current(seller)).toString()).to.be.equal(BigNumber.from(sellerBalance).add(10098).toString())
         });
         it('create OK ERC721 Provenance auction for ERC20 asset with eth cashbacks', async function () {
-            const token = await ERC721Provenance.new(name, symbol);
+            const token = await ERC721Provenance.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -139,8 +135,7 @@ contract('NftAuction', function (accounts) {
             expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('101000')
             expect((await balance.current(auction.address)).toString()).to.be.equal('0')
-            const b = await auction.bid('1', 10100, { from: buyer , value:20});
-            
+            const b = await auction.bid('1', 10100, { from: buyer, value: 10000 });
             auctions = await auction.getAuction('1');
             expect(auctions[2]).to.be.equal('1');
             expect(auctions[8]).to.be.equal('10000');
@@ -148,17 +143,14 @@ contract('NftAuction', function (accounts) {
             expectEvent(b, 'AuctionBid', {
                 buyer,
             })
-            const auctionBalance=(await balance.current(auction.address, 'ether'));
+            const auctionBalance = (await balance.current(auction.address, 'ether'));
             expect(await token.allowance(auction.address, tokenId)).to.be.equal(true);
             expect((await erc20.balanceOf(seller)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(marketOwner)).toString()).to.be.equal('0')
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('111100')
 
             await time.advanceBlockTo(endedAt.add(new BN(1)))
-            
 
-            expect((await balance.current(a1, 'ether')).toString()).to.be.equal('10000')
-            expect((await balance.current(a2, 'ether')).toString()).to.be.equal('10000')
             // expect((await balance.current(auction.address, 'ether')).toString()).to.be.equal('40')
             const s = await auction.settleAuction('1');
             expect(await token.ownerOf(tokenId)).to.be.equal(buyer);
@@ -167,7 +159,7 @@ contract('NftAuction', function (accounts) {
             expect((await erc20.balanceOf(auction.address)).toString()).to.be.equal('101000')
         });
         it('create OK ERC721 Provenance auction for ERC20 asset with cashbacks', async function () {
-            const token = await ERC721Provenance.new(name, symbol);
+            const token = await ERC721Provenance.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -179,7 +171,7 @@ contract('NftAuction', function (accounts) {
             expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mintMultiple([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]],erc20.address);
+            await token.mintMultiple([seller, seller], [tokenId, tokenId + 1], ["test.com", "test.com"], [[a1, a2], [a1, a2]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], [[new BN(10), new BN(10)], [new BN(10), new BN(10)]], erc20.address);
 
             const nftAddress = token.address;
             await erc20.transfer(auction.address, new BN(101000), { from: buyer })
@@ -242,7 +234,7 @@ contract('NftAuction', function (accounts) {
             expect((await erc20.balanceOf(a2)).toString()).to.be.equal('10')
         });
         it('create OK ERC721 auction for ERC20 asset', async function () {
-            const token = await ERC721Mock.new(name, symbol);
+            const token = await ERC721Mock.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -254,7 +246,7 @@ contract('NftAuction', function (accounts) {
             expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mintWithTokenURI(seller, tokenId,"test.com");
+            await token.mintWithTokenURI(seller, tokenId, "test.com");
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
@@ -451,11 +443,11 @@ contract('NftAuction', function (accounts) {
 
     describe('Should pass NOK auction journeys - cancel auction, auction close, etc', () => {
         it('cancel ERC721 auction for native asset', async function () {
-            const token = await ERC721Mock.new(name, symbol);
+            const token = await ERC721Mock.new(name, symbol, false);
             const auction = await NftAuction.new(200, marketOwner);
 
             const tokenId = new BN(1);
-            await token.mintWithTokenURI(seller, tokenId,"test.com");
+            await token.mintWithTokenURI(seller, tokenId, "test.com");
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));
@@ -512,7 +504,7 @@ contract('NftAuction', function (accounts) {
             expect((await balance.current(buyer)).toString()).to.be.equal(BigNumber.from(buyerBalance).add(10200).toString())
         });
         it('cancel OK ERC721 auction for ERC20 asset', async function () {
-            const token = await ERC721Mock.new(name, symbol);
+            const token = await ERC721Mock.new(name, symbol, false);
             const fee = new BN(100); // 1%
 
             const erc20 = await ERC20Mock.new(name, symbol, buyer, 1000000)
@@ -524,7 +516,7 @@ contract('NftAuction', function (accounts) {
             expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
 
             const tokenId = new BN(1);
-            await token.mintWithTokenURI(seller, tokenId,"test.com");
+            await token.mintWithTokenURI(seller, tokenId, "test.com");
 
             const nftAddress = token.address;
             const endedAt = (await time.latestBlock()).add(new BN(10));

@@ -11,7 +11,7 @@ import "../../utils/Address.sol";
 import "../../security/Pausable.sol";
 
 contract Tatum {
-    function tokenCashbackValues(uint256 tokenId)
+    function tokenCashbackValues(uint256 tokenId, uint256 tokenPrice)
         public
         view
         virtual
@@ -219,7 +219,7 @@ contract NftAuction is Ownable, Pausable {
             uint256 cashbackSum = 0;
             if (Tatum(nftAddress).getCashbackAddress(tokenId) == address(0)) {
                 uint256[] memory cashback = Tatum(nftAddress)
-                    .tokenCashbackValues(tokenId);
+                    .tokenCashbackValues(tokenId,amount);
                 for (uint256 j = 0; j < cashback.length; j++) {
                     cashbackSum += cashback[j];
                 }
@@ -384,7 +384,7 @@ contract NftAuction is Ownable, Pausable {
         uint256 bidWithoutFee = (bidValue / (10000 + _auctionFee)) * 10000;
         require(
             auction.endingPrice < bidWithoutFee,
-            "Bid free of the auction fee is lower thank actual highest bid price. Aborting."
+            "Bid fee of the auction fee is lower than actual highest bid price. Aborting."
         );
         require(
             IERC20(auction.erc20Address).allowance(bidder, address(this)) >=
@@ -456,11 +456,11 @@ contract NftAuction is Ownable, Pausable {
         );
         require(
             auction.endingPrice < bidWithoutFee,
-            "Bid free of the auction fee is lower thank actual highest bid price. Aborting."
+            "Bid fee of the auction fee is lower than actual highest bid price. Aborting."
         );
         if (auction.erc20Address == address(0)) {
             require(
-                bidValue == msg.value,
+                bidValue <= msg.value,
                 "Wrong amount entered for the bid. Aborting."
             );
         }
@@ -498,14 +498,15 @@ contract NftAuction is Ownable, Pausable {
                 ) == address(0)
             ) {
                 uint256[] memory cashback = Tatum(newAuction.nftAddress)
-                    .tokenCashbackValues(newAuction.tokenId);
+                    .tokenCashbackValues(newAuction.tokenId,bidValue);
                 for (uint256 j = 0; j < cashback.length; j++) {
                     cashbackSum += cashback[j];
                 }
-                require(
-                    msg.value >= cashbackSum,
-                    "Balance Insufficient to pay royalties"
-                );
+                if(newAuction.erc20Address==address(0)){
+                    require(msg.value >= cashbackSum + bidValue,"Balance Insufficient to pay royalties");
+                }else{
+                    require(msg.value >= cashbackSum,"Balance Insufficient to pay royalties");
+                }
                 Address.sendValue(payable(address(this)), cashbackSum);
             }
         }
@@ -620,12 +621,12 @@ contract NftAuction is Ownable, Pausable {
             address(0)
         ) {
             uint256[] memory cashback = Tatum(auction.nftAddress)
-                .tokenCashbackValues(auction.tokenId);
+                .tokenCashbackValues(auction.tokenId,highestBid);
             for (uint256 j = 0; j < cashback.length; j++) {
                 cashbackSum += cashback[j];
             }
         }
-        if (cashbackSum > 0) {
+        if (cashbackSum > 0 && bidder != address(0)) {
             Address.sendValue(payable(bidder), cashbackSum);
         }
         _auctionCount--;

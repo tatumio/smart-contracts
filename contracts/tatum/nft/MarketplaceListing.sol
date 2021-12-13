@@ -10,7 +10,7 @@ import "../../access/Ownable.sol";
 import "../../utils/Address.sol";
 
 contract Tatum {
-    function tokenCashbackValues(uint256 tokenId)
+    function tokenCashbackValues(uint256 tokenId, uint256 tokenPrice)
         public
         view
         virtual
@@ -186,7 +186,7 @@ contract MarketplaceListing is Ownable {
             if (Tatum(nftAddress).getCashbackAddress(tokenId) == address(0)) {
                 uint256 cashbackSum = 0;
                 uint256[] memory cashback = Tatum(nftAddress)
-                    .tokenCashbackValues(tokenId);
+                    .tokenCashbackValues(tokenId,price);
                 for (uint256 j = 0; j < cashback.length; j++) {
                     cashbackSum += cashback[j];
                 }
@@ -284,14 +284,16 @@ contract MarketplaceListing is Ownable {
         listing.buyer = msg.sender;
         _listings[listingId] = listing;
         uint256 cashbackSum = 0;
-        if (
-            Tatum(listing.nftAddress).getCashbackAddress(listing.tokenId) ==
-            address(0)
-        ) {
-            uint256[] memory cashback = Tatum(listing.nftAddress)
-                .tokenCashbackValues(listing.tokenId);
-            for (uint256 j = 0; j < cashback.length; j++) {
-                cashbackSum += cashback[j];
+        if(listing.isErc721){
+            if (
+                Tatum(listing.nftAddress).getCashbackAddress(listing.tokenId) ==
+                address(0)
+            ) {
+                uint256[] memory cashback = Tatum(listing.nftAddress)
+                    .tokenCashbackValues(listing.tokenId,listing.price);
+                for (uint256 j = 0; j < cashback.length; j++) {
+                    cashbackSum += cashback[j];
+                }
             }
         }
         if (listing.erc20Address == address(0)) {
@@ -524,7 +526,7 @@ contract MarketplaceListing is Ownable {
             if (listing.erc20Address == address(0)) {
                 uint256 cashbackSum = 0;
                 uint256[] memory cashback = Tatum(listing.nftAddress)
-                    .tokenCashbackValues(listing.tokenId);
+                    .tokenCashbackValues(listing.tokenId,listing.price);
                 for (uint256 j = 0; j < cashback.length; j++) {
                     cashbackSum += cashback[j];
                 }
