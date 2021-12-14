@@ -6,10 +6,12 @@ import "../token/ERC721/extensions/ERC721Enumerable.sol";
 import "../token/ERC721/extensions/ERC721URIStorage.sol";
 import "../access/AccessControlEnumerable.sol";
 import "../token/ERC20/IERC20.sol";
+import "../utils/introspection/ERC2981.sol";
 
 contract Tatum721 is
     ERC721Enumerable,
     ERC721URIStorage,
+    ERC2981,
     AccessControlEnumerable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -18,12 +20,13 @@ contract Tatum721 is
     mapping(uint256 => address[]) private _cashbackRecipients;
     mapping(uint256 => uint256[]) private _cashbackValues;
     mapping(uint256 => address) private _customToken;
-
-    constructor(string memory name_, string memory symbol_)
+    bool _publicMint;
+    constructor(string memory name_, string memory symbol_,bool publicMint)
         ERC721(name_, symbol_)
     {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MINTER_ROLE, _msgSender());
+        _publicMint=publicMint;
     }
 
     /**
@@ -38,20 +41,30 @@ contract Tatum721 is
         uint256 tokenId,
         string memory uri
     ) public returns (bool) {
-        require(
-            hasRole(MINTER_ROLE, _msgSender()),
-            "ERC721PresetMinterPauserAutoId: must have minter role to mint"
-        );
+        if(!_publicMint){
+            require(
+                hasRole(MINTER_ROLE, _msgSender()),
+                "ERC721PresetMinterPauserAutoId: must have minter role to mint"
+            );
+        }
         _mint(to, tokenId);
         _setTokenURI(tokenId, uri);
         return true;
     }
-
+    function royaltyInfo(uint256 tokenId, uint256 value)
+            external
+            view
+            override
+            returns (address, uint256)
+        {
+            require(value >= 1, "value should be greater than or equal to 1");
+            return (_cashbackRecipients[tokenId][0], _cashbackValues[tokenId][0]);
+        }
     function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
-        override(AccessControlEnumerable, ERC721, ERC721Enumerable)
+        override(AccessControlEnumerable, ERC721, ERC721Enumerable, ERC2981)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
@@ -67,7 +80,7 @@ contract Tatum721 is
         return ERC721URIStorage.tokenURI(tokenId);
     }
 
-    function tokenCashbackValues(uint256 tokenId)
+    function tokenCashbackValues(uint256 tokenId, uint256 tokenPrice)
         public
         view
         virtual
@@ -110,10 +123,12 @@ contract Tatum721 is
         uint256[] memory tokenId,
         string[] memory uri
     ) public returns (bool) {
-        require(
-            hasRole(MINTER_ROLE, _msgSender()),
-            "ERC721PresetMinterPauserAutoId: must have minter role to mint"
-        );
+        if(!_publicMint){
+            require(
+                hasRole(MINTER_ROLE, _msgSender()),
+                "ERC721PresetMinterPauserAutoId: must have minter role to mint"
+            );
+        }
         for (uint256 i = 0; i < to.length; i++) {
             _mint(to[i], tokenId[i]);
             _setTokenURI(tokenId[i], uri[i]);
@@ -175,10 +190,12 @@ contract Tatum721 is
         address[][] memory recipientAddresses,
         uint256[][] memory cashbackValues
     ) public returns (bool) {
-        require(
-            hasRole(MINTER_ROLE, _msgSender()),
-            "ERC721PresetMinterPauserAutoId: must have minter role to mint"
-        );
+        if(!_publicMint){
+            require(
+                hasRole(MINTER_ROLE, _msgSender()),
+                "ERC721PresetMinterPauserAutoId: must have minter role to mint"
+            );
+        }
         for (uint256 i = 0; i < to.length; i++) {
             _mint(to[i], tokenId[i]);
             _setTokenURI(tokenId[i], uri[i]);
@@ -218,10 +235,12 @@ contract Tatum721 is
         address[] memory recipientAddresses,
         uint256[] memory cashbackValues
     ) public returns (bool) {
-        require(
-            hasRole(MINTER_ROLE, _msgSender()),
-            "ERC721PresetMinterPauserAutoId: must have minter role to mint"
-        );
+        if(!_publicMint){
+            require(
+                hasRole(MINTER_ROLE, _msgSender()),
+                "ERC721PresetMinterPauserAutoId: must have minter role to mint"
+            );
+        }
         _mint(to, tokenId);
         _setTokenURI(tokenId, uri);
         // saving cashback addresses and values
