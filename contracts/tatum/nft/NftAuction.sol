@@ -12,17 +12,17 @@ import "../../security/Pausable.sol";
 
 contract Tatum {
     function tokenCashbackValues(uint256 tokenId, uint256 tokenPrice)
-        public
-        view
-        virtual
-        returns (uint256[] memory)
+    public
+    view
+    virtual
+    returns (uint256[] memory)
     {}
 
     function getCashbackAddress(uint256 tokenId)
-        public
-        view
-        virtual
-        returns (address)
+    public
+    view
+    virtual
+    returns (address)
     {}
 }
 
@@ -133,23 +133,25 @@ contract NftAuction is Ownable, Pausable {
     function getAuctionFee() public view virtual returns (uint256) {
         return _auctionFee;
     }
+
     function getOpenAuctions()
-                public
-                view
-                virtual
-                returns (string[] memory)
-        {
-            return _openAuctions;
-        }
+    public
+    view
+    virtual
+    returns (string[] memory)
+    {
+        return _openAuctions;
+    }
+
     function getAuctionFeeRecipient() public view virtual returns (address) {
         return _auctionFeeRecipient;
     }
 
     function getAuction(string memory id)
-        public
-        view
-        virtual
-        returns (Auction memory)
+    public
+    view
+    virtual
+    returns (Auction memory)
     {
         return _auctions[id];
     }
@@ -163,9 +165,9 @@ contract NftAuction is Ownable, Pausable {
     }
 
     function setAuctionFeeRecipient(address recipient)
-        public
-        virtual
-        onlyOwner
+    public
+    virtual
+    onlyOwner
     {
         _auctionFeeRecipient = recipient;
     }
@@ -226,15 +228,17 @@ contract NftAuction is Ownable, Pausable {
             );
         } else {
             uint256 cashbackSum = 0;
-            if (Tatum(nftAddress).getCashbackAddress(tokenId) == address(0)) {
-                uint256[] memory cashback = Tatum(nftAddress)
-                    .tokenCashbackValues(tokenId,amount);
-                for (uint256 j = 0; j < cashback.length; j++) {
-                    cashbackSum += cashback[j];
+            if (isTatumNFT(nftAddress, tokenId)) {
+                if (Tatum(nftAddress).getCashbackAddress(tokenId) == address(0)) {
+                    uint256[] memory cashback = Tatum(nftAddress)
+                    .tokenCashbackValues(tokenId, amount);
+                    for (uint256 j = 0; j < cashback.length; j++) {
+                        cashbackSum += cashback[j];
+                    }
                 }
             }
             if (erc20Address == address(0)) {
-                IERC721(nftAddress).safeTransferFrom{value: cashbackSum}(
+                IERC721(nftAddress).safeTransferFrom{value : cashbackSum}(
                     sender,
                     recipient,
                     tokenId,
@@ -251,7 +255,7 @@ contract NftAuction is Ownable, Pausable {
                     "'''###'''",
                     _uint2str(amount)
                 );
-                IERC721(nftAddress).safeTransferFrom{value: cashbackSum}(
+                IERC721(nftAddress).safeTransferFrom{value : cashbackSum}(
                     sender,
                     recipient,
                     tokenId,
@@ -264,7 +268,7 @@ contract NftAuction is Ownable, Pausable {
     function _toAsciiString(address x) internal pure returns (bytes memory) {
         bytes memory s = new bytes(40);
         for (uint256 i = 0; i < 20; i++) {
-            bytes1 b = bytes1(uint8(uint256(uint160(x)) / (2**(8 * (19 - i)))));
+            bytes1 b = bytes1(uint8(uint256(uint160(x)) / (2 ** (8 * (19 - i)))));
             bytes1 hi = bytes1(uint8(b) / 16);
             bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
             s[2 * i] = _char(hi);
@@ -398,7 +402,7 @@ contract NftAuction is Ownable, Pausable {
         );
         require(
             IERC20(auction.erc20Address).allowance(bidder, address(this)) >=
-                bidValue,
+            bidValue,
             "Insufficient approval for ERC20 token for the auction bid. Aborting."
         );
 
@@ -421,7 +425,7 @@ contract NftAuction is Ownable, Pausable {
         IERC20 token = IERC20(newAuction.erc20Address);
         if (!token.transferFrom(bidder, address(this), bidValue)) {
             revert(
-                "Unable to transfer ERC20 tokens from the bidder to the Auction. Aborting"
+            "Unable to transfer ERC20 tokens from the bidder to the Auction. Aborting"
             );
         }
 
@@ -454,9 +458,9 @@ contract NftAuction is Ownable, Pausable {
      * @param bidValue - bid value + the auction fee
      */
     function bid(string memory id, uint256 bidValue)
-        public
-        payable
-        whenNotPaused
+    public
+    payable
+    whenNotPaused
     {
         Auction memory auction = _auctions[id];
         uint256 bidWithoutFee = (bidValue / (10000 + _auctionFee)) * 10000;
@@ -502,29 +506,31 @@ contract NftAuction is Ownable, Pausable {
 
         uint256 cashbackSum = 0;
         if (newAuction.isErc721) {
-            if (
-                Tatum(newAuction.nftAddress).getCashbackAddress(
-                    newAuction.tokenId
-                ) == address(0)
-            ) {
-                uint256[] memory cashback = Tatum(newAuction.nftAddress)
-                    .tokenCashbackValues(newAuction.tokenId,bidValue);
-                for (uint256 j = 0; j < cashback.length; j++) {
-                    cashbackSum += cashback[j];
+            if (isTatumNFT(newAuction.nftAddress, newAuction.tokenId)) {
+                if (
+                    Tatum(newAuction.nftAddress).getCashbackAddress(
+                        newAuction.tokenId
+                    ) == address(0)
+                ) {
+                    uint256[] memory cashback = Tatum(newAuction.nftAddress)
+                    .tokenCashbackValues(newAuction.tokenId, bidValue);
+                    for (uint256 j = 0; j < cashback.length; j++) {
+                        cashbackSum += cashback[j];
+                    }
+                    if (newAuction.erc20Address == address(0)) {
+                        require(msg.value >= cashbackSum + bidValue, "Balance Insufficient to pay royalties");
+                    } else {
+                        require(msg.value >= cashbackSum, "Balance Insufficient to pay royalties");
+                    }
+                    Address.sendValue(payable(address(this)), cashbackSum);
                 }
-                if(newAuction.erc20Address==address(0)){
-                    require(msg.value >= cashbackSum + bidValue,"Balance Insufficient to pay royalties");
-                }else{
-                    require(msg.value >= cashbackSum,"Balance Insufficient to pay royalties");
-                }
-                Address.sendValue(payable(address(this)), cashbackSum);
             }
         }
         if (newAuction.erc20Address != address(0)) {
             IERC20 token = IERC20(newAuction.erc20Address);
             if (!token.transferFrom(msg.sender, address(this), bidValue)) {
                 revert(
-                    "Unable to transfer ERC20 tokens to the Auction. Aborting"
+                "Unable to transfer ERC20 tokens to the Auction. Aborting"
                 );
             }
         } else {
@@ -592,19 +598,20 @@ contract NftAuction is Ownable, Pausable {
         _auctionCount--;
         emit AuctionSettled(id);
     }
+
     function _toRemove(string memory id) internal {
-            for(uint x=0;x<_openAuctions.length;x++){
-                if (
+        for (uint x = 0; x < _openAuctions.length; x++) {
+            if (
                 keccak256(abi.encodePacked(_openAuctions[x])) ==
                 keccak256(abi.encodePacked(id))
-                ){
+            ) {
                 for (uint i = x; i < _openAuctions.length - 1; i++) {
-                        _openAuctions[i] = _openAuctions[i + 1];
-                    }
-                _openAuctions.pop();
+                    _openAuctions[i] = _openAuctions[i + 1];
                 }
+                _openAuctions.pop();
             }
         }
+    }
     /**
      * @dev Cancel auction - returns the NFT asset to the seller.
      * @param id - id of the auction to cancel
@@ -638,14 +645,16 @@ contract NftAuction is Ownable, Pausable {
             _transferAssets(erc20Address, highestBid, bidder, false);
         }
         uint256 cashbackSum = 0;
-        if (
-            Tatum(auction.nftAddress).getCashbackAddress(auction.tokenId) ==
-            address(0)
-        ) {
-            uint256[] memory cashback = Tatum(auction.nftAddress)
-                .tokenCashbackValues(auction.tokenId,highestBid);
-            for (uint256 j = 0; j < cashback.length; j++) {
-                cashbackSum += cashback[j];
+        if (isTatumNFT(auction.nftAddress, auction.tokenId)) {
+            if (
+                Tatum(auction.nftAddress).getCashbackAddress(auction.tokenId) ==
+                address(0)
+            ) {
+                uint256[] memory cashback = Tatum(auction.nftAddress)
+                .tokenCashbackValues(auction.tokenId, highestBid);
+                for (uint256 j = 0; j < cashback.length; j++) {
+                    cashbackSum += cashback[j];
+                }
             }
         }
         if (cashbackSum > 0 && bidder != address(0)) {
@@ -657,9 +666,9 @@ contract NftAuction is Ownable, Pausable {
     }
 
     function _uint2str(uint256 _i)
-        internal
-        pure
-        returns (string memory _uintAsString)
+    internal
+    pure
+    returns (string memory _uintAsString)
     {
         if (_i == 0) {
             return "0";
@@ -680,5 +689,24 @@ contract NftAuction is Ownable, Pausable {
             _i /= 10;
         }
         return string(bstr);
+    }
+
+    function isTatumNFT(address addr, uint256 p1) internal returns (bool){
+        bool success;
+        bytes memory data = abi.encodeWithSelector(bytes4(keccak256("getCashbackAddress(uint256)")), p1);
+
+        assembly {
+            success := call(
+            gas(), // gas remaining
+            addr, // destination address
+            0, // no ether
+            add(data, 32), // input buffer (starts after the first 32 bytes in the `data` array)
+            mload(data), // input length (loaded from the first 32 bytes in the `data` array)
+            0, // output buffer
+            0               // output length
+            )
+        }
+
+        return success;
     }
 }
