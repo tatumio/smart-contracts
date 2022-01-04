@@ -335,7 +335,7 @@ contract MarketplaceListing is Ownable {
                     abi.encodePacked(
                         "SafeTransferFrom",
                         "'''###'''",
-                        _uint2str(listing.amount)
+                        _uint2str(listing.price)
                     )
                 );
             } else {
@@ -369,7 +369,7 @@ contract MarketplaceListing is Ownable {
                     "CUSTOMTOKEN0x",
                     _toAsciiString(listing.erc20Address),
                     "'''###'''",
-                    _uint2str(listing.amount)
+                    _uint2str(listing.price)
                 );
                 IERC721(listing.nftAddress).safeTransferFrom{
                 value : cashbackSum
@@ -511,7 +511,7 @@ contract MarketplaceListing is Ownable {
                     "CUSTOMTOKEN0x",
                     _toAsciiString(listing.erc20Address),
                     "'''###'''",
-                    _uint2str(listing.amount)
+                    _uint2str(listing.price)
                 )
             );
         } else {
