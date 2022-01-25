@@ -191,7 +191,7 @@ contract MarketplaceListing is Ownable {
                 IERC721(nftAddress).ownerOf(tokenId) == seller,
                 "ERC721 token does not belong to the author."
             );
-            if (isTatumNFT(nftAddress, tokenId)) {
+            if (_isTatumNFT(nftAddress, tokenId)) {
                 if (Tatum(nftAddress).getCashbackAddress(tokenId) == address(0)) {
                     uint256 cashbackSum = 0;
                     uint256[] memory cashback = Tatum(nftAddress)
@@ -270,7 +270,7 @@ contract MarketplaceListing is Ownable {
         } else {
             if (
                 IERC1155(listing.nftAddress).balanceOf(
-                    address(this),
+                    listing.seller,
                     listing.tokenId
                 ) < listing.amount
             ) {
@@ -296,7 +296,7 @@ contract MarketplaceListing is Ownable {
         _listings[listingId] = listing;
         uint256 cashbackSum = 0;
         if (listing.isErc721) {
-            if (isTatumNFT(listing.nftAddress, listing.tokenId)) {
+            if (_isTatumNFT(listing.nftAddress, listing.tokenId)) {
                 if (
                     Tatum(listing.nftAddress).getCashbackAddress(listing.tokenId) ==
                     address(0)
@@ -340,7 +340,7 @@ contract MarketplaceListing is Ownable {
                 );
             } else {
                 IERC1155(listing.nftAddress).safeTransferFrom(
-                    address(this),
+                    listing.seller,
                     msg.sender,
                     listing.tokenId,
                     listing.amount,
@@ -376,7 +376,7 @@ contract MarketplaceListing is Ownable {
                 }(listing.seller, msg.sender, listing.tokenId, bytesInput);
             } else {
                 IERC1155(listing.nftAddress).safeTransferFrom(
-                    address(this),
+                    listing.seller,
                     msg.sender,
                     listing.tokenId,
                     listing.amount,
@@ -473,7 +473,7 @@ contract MarketplaceListing is Ownable {
         } else {
             if (
                 IERC1155(listing.nftAddress).balanceOf(
-                    address(this),
+                    listing.seller,
                     listing.tokenId
                 ) < listing.amount
             ) {
@@ -504,7 +504,7 @@ contract MarketplaceListing is Ownable {
         token.transferFrom(buyer, listing.seller, listing.price);
         if (listing.isErc721) {
             IERC721(listing.nftAddress).safeTransferFrom(
-                address(this),
+                listing.seller,
                 buyer,
                 listing.tokenId,
                 abi.encodePacked(
@@ -516,7 +516,7 @@ contract MarketplaceListing is Ownable {
             );
         } else {
             IERC1155(listing.nftAddress).safeTransferFrom(
-                address(this),
+                listing.seller,
                 buyer,
                 listing.tokenId,
                 listing.amount,
@@ -543,34 +543,24 @@ contract MarketplaceListing is Ownable {
         );
         listing.state = State.CANCELLED;
         _listings[listingId] = listing;
-        if (!listing.isErc721) {
-            IERC1155(listing.nftAddress).safeTransferFrom(
-                address(this),
-                listing.seller,
-                listing.tokenId,
-                listing.amount,
-                ""
-            );
-        } else {
-            if (listing.erc20Address == address(0)) {
-                uint256 cashbackSum = 0;
-                if (isTatumNFT(listing.nftAddress, listing.tokenId, listing.price)) {
-                    uint256[] memory cashback = Tatum(listing.nftAddress)
-                    .tokenCashbackValues(listing.tokenId, listing.price);
-                    for (uint256 j = 0; j < cashback.length; j++) {
-                        cashbackSum += cashback[j];
-                    }
+        if(listing.isErc721 && listing.erc20Address == address(0)){
+            uint256 cashbackSum = 0;
+            if (_isTatumNFT(listing.nftAddress, listing.tokenId, listing.price)) {
+                uint256[] memory cashback = Tatum(listing.nftAddress)
+                .tokenCashbackValues(listing.tokenId, listing.price);
+                for (uint256 j = 0; j < cashback.length; j++) {
+                    cashbackSum += cashback[j];
                 }
-                if (cashbackSum > 0) {
-                    Address.sendValue(payable(listing.seller), cashbackSum);
-                }
+            }
+            if (cashbackSum > 0) {
+                Address.sendValue(payable(listing.seller), cashbackSum);
             }
         }
         _toRemove(listingId);
         emit ListingCancelled(listingId);
     }
 
-    function isTatumNFT(address addr, uint256 p1, uint256 p2) internal returns (bool){
+    function _isTatumNFT(address addr, uint256 p1, uint256 p2) internal returns (bool){
         bool success;
         bytes memory data = abi.encodeWithSelector(bytes4(keccak256("tokenCashbackValues(uint256,uint256)")), p1, p2);
 
@@ -589,7 +579,7 @@ contract MarketplaceListing is Ownable {
         return success;
     }
 
-    function isTatumNFT(address addr, uint256 p1) internal returns (bool){
+    function _isTatumNFT(address addr, uint256 p1) internal returns (bool){
         bool success;
         bytes memory data = abi.encodeWithSelector(bytes4(keccak256("getCashbackAddress(uint256)")), p1);
 

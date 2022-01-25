@@ -7,7 +7,7 @@ import "./IERC721Receiver.sol";
 import "./extensions/IERC721Metadata.sol";
 import "./extensions/IERC721Enumerable.sol";
 import "../../utils/Address.sol";
-import "../../utils/Context.sol";
+import "../../utils/Ownable.sol";
 import "../../utils/Strings.sol";
 import "../../utils/introspection/ERC165.sol";
 
@@ -16,7 +16,7 @@ import "../../utils/introspection/ERC165.sol";
  * the Metadata extension, but not including the Enumerable extension, which is available separately as
  * {ERC721Enumerable}.
  */
-contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
+contract ERC721 is Ownable, ERC165, IERC721, IERC721Metadata {
     using Address for address;
     using Strings for uint256;
 
