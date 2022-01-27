@@ -190,13 +190,7 @@ contract NftAuction is Ownable, Pausable {
                 IERC1155(nftAddress).balanceOf(seller, tokenId) >= amount,
                 "ERC1155 token balance is not sufficient for the seller.."
             );
-            IERC1155(nftAddress).safeTransferFrom(
-                seller,
-                address(this),
-                tokenId,
-                amount,
-                ""
-            );
+            //    IERC1155(nftAddress).safeTransferFrom(seller,address(this),tokenId,amount,"");
         } else {
             require(
                 IERC721(nftAddress).ownerOf(tokenId) == seller,
@@ -220,7 +214,7 @@ contract NftAuction is Ownable, Pausable {
     ) internal {
         if (!isErc721) {
             IERC1155(nftAddress).safeTransferFrom(
-                address(this),
+                sender,
                 recipient,
                 tokenId,
                 amount,
@@ -228,7 +222,7 @@ contract NftAuction is Ownable, Pausable {
             );
         } else {
             uint256 cashbackSum = 0;
-            if (isTatumNFT(nftAddress, tokenId)) {
+            if (_isTatumNFT(nftAddress, tokenId)) {
                 if (Tatum(nftAddress).getCashbackAddress(tokenId) == address(0)) {
                     uint256[] memory cashback = Tatum(nftAddress)
                     .tokenCashbackValues(tokenId, amount);
@@ -506,7 +500,7 @@ contract NftAuction is Ownable, Pausable {
 
         uint256 cashbackSum = 0;
         if (newAuction.isErc721) {
-            if (isTatumNFT(newAuction.nftAddress, newAuction.tokenId)) {
+            if (_isTatumNFT(newAuction.nftAddress, newAuction.tokenId)) {
                 if (
                     Tatum(newAuction.nftAddress).getCashbackAddress(
                         newAuction.tokenId
@@ -645,7 +639,7 @@ contract NftAuction is Ownable, Pausable {
             _transferAssets(erc20Address, highestBid, bidder, false);
         }
         uint256 cashbackSum = 0;
-        if (isTatumNFT(auction.nftAddress, auction.tokenId)) {
+        if (_isTatumNFT(auction.nftAddress, auction.tokenId)) {
             if (
                 Tatum(auction.nftAddress).getCashbackAddress(auction.tokenId) ==
                 address(0)
@@ -691,7 +685,7 @@ contract NftAuction is Ownable, Pausable {
         return string(bstr);
     }
 
-    function isTatumNFT(address addr, uint256 p1) internal returns (bool){
+    function _isTatumNFT(address addr, uint256 p1) internal returns (bool){
         bool success;
         bytes memory data = abi.encodeWithSelector(bytes4(keccak256("getCashbackAddress(uint256)")), p1);
 

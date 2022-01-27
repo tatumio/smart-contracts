@@ -321,8 +321,6 @@ contract('NftAuction', function (accounts) {
 
             const c = await auction.createAuction('1', false, nftAddress, tokenId, seller1155, 1, endedAt, ZERO_ADDRESS)
 
-            expect((await token.balanceOf(auction.address, tokenId)).toString()).to.be.equal('1');
-            expect((await token.balanceOf(seller1155, tokenId)).toString()).to.be.equal('9');
             expectEvent(c, 'AuctionCreated', {
                 isErc721: false,
                 nftAddress,
@@ -389,8 +387,6 @@ contract('NftAuction', function (accounts) {
 
             const c = await auction.createAuction('1', false, nftAddress, tokenId, seller1155, 1, endedAt, erc20.address)
 
-            expect((await token.balanceOf(auction.address, tokenId)).toString()).to.be.equal('1');
-            expect((await token.balanceOf(seller1155, tokenId)).toString()).to.be.equal('9');
             expectEvent(c, 'AuctionCreated', {
                 isErc721: false,
                 nftAddress,
@@ -441,6 +437,65 @@ contract('NftAuction', function (accounts) {
     });
 
     describe('Should pass NOK auction journeys - cancel auction, auction close, etc', () => {
+        it('cancel ERC1155 auction for native asset', async function () {
+            const token = await ERC1155Mock.new('https://token-cdn-domain/{id}.json');
+            const fee = new BN(100); // 1%
+
+            const auction = await NftAuction.new(200, marketOwner1155);
+            expect((await auction.getAuctionFee()).toString()).to.equal(new BN(200).toString());
+            await auction.setAuctionFee(fee);
+            expect((await auction.getAuctionFee()).toString()).to.equal(fee.toString());
+
+            const tokenId = new BN(1);
+            await token.mint(seller1155, tokenId, new BN(10), 0x0);
+
+            const nftAddress = token.address;
+            const endedAt = (await time.latestBlock()).add(new BN(10));
+            await token.setApprovalForAll(auction.address, true, { from: seller1155 });
+            expect((await token.balanceOf(seller1155, tokenId)).toString()).to.be.equal('10');
+
+            const c = await auction.createAuction('1', false, nftAddress, tokenId, seller1155, 1, endedAt, ZERO_ADDRESS)
+
+            expectEvent(c, 'AuctionCreated', {
+                isErc721: false,
+                nftAddress,
+                tokenId,
+                amount: new BN(1),
+                erc20Address: ZERO_ADDRESS,
+                endedAt,
+            })
+
+            await time.advanceBlock();
+            let auctions = await auction.getAuction('1');
+            expect(auctions[0]).to.be.equal(seller1155);
+            expect(auctions[1]).to.be.equal(nftAddress);
+            expect(auctions[2]).to.be.equal('1');
+            expect(auctions[3]).to.be.equal(false);
+            expect(auctions[6]).to.be.equal(ZERO_ADDRESS);
+            expect(auctions[7]).to.be.equal('1');
+            expect(auctions[8]).to.be.equal('0');
+            expect(auctions[9]).to.be.equal(ZERO_ADDRESS);
+            
+            const seller1155Balance = (await balance.current(seller1155)).toString();
+            const marketBalance = (await balance.current(marketOwner1155)).toString();
+            const buyer1155Balance = (await balance.current(buyer1155)).toString();
+            const b = await auction.bid('1', 10200, { from: buyer1155, value: 10200 });
+            auctions = await auction.getAuction('1');
+            expect(auctions[2]).to.be.equal('1');
+            expect(auctions[8]).to.be.equal('10000');
+            expect(auctions[9]).to.be.equal(buyer1155);
+            
+            expectEvent(b, 'AuctionBid', {
+                buyer: buyer1155,
+            })
+            expect((await balance.current(auction.address)).toString()).to.be.equal('10200')
+            expect((await balance.current(marketOwner1155)).toString()).to.be.equal(marketBalance.toString())
+            expect((await balance.current(seller1155)).toString()).to.be.equal(seller1155Balance.toString())
+
+            await time.advanceBlockTo(endedAt.add(new BN(1)))
+            await auction.cancelAuction('1')
+            expect((await token.balanceOf(buyer1155, tokenId)).toString()).to.be.equal('0');
+        });
         it('cancel ERC721 auction for native asset', async function () {
             const token = await ERC721Mock.new(name, symbol, false);
             const auction = await NftAuction.new(200, marketOwner);
