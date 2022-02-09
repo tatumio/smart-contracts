@@ -6,11 +6,14 @@ import "../../token/ERC20/IERC20.sol";
 import "../../token/ERC1155/IERC1155.sol";
 import "../../token/ERC721/IERC721.sol";
 import "./CustodialOwnable.sol";
+import "../../token/ERC20/utils/SafeERC20.sol";
 
 contract CustodialWallet is CustodialOwnable {
 
+    using SafeERC20 for IERC20;
+
     event TransferNativeAsset(address indexed recipient, uint256 indexed amount);
-    
+
     function onERC721Received(address, address, uint256, bytes memory) public virtual returns (bytes4) {
         return this.onERC721Received.selector;
     }
@@ -44,7 +47,7 @@ contract CustodialWallet is CustodialOwnable {
     **/
     function transfer(address tokenAddress, uint256 contractType, address recipient, uint256 amount, uint256 tokenId) public payable onlyOwner {
         if (contractType == 0) {
-            IERC20(tokenAddress).transfer(recipient, amount);
+            IERC20(tokenAddress).safeTransfer(recipient, amount);
         } else if (contractType == 1) {
             IERC721(tokenAddress).safeTransferFrom(address(this), recipient, tokenId, "");
         } else if (contractType == 2) {
@@ -76,7 +79,7 @@ contract CustodialWallet is CustodialOwnable {
         require(amount.length == tokenId.length);
         for (uint256 i = 0; i < tokenAddress.length; i++) {
             if (contractType[i] == 0) {
-                IERC20(tokenAddress[i]).transfer(recipient[i], amount[i]);
+                IERC20(tokenAddress[i]).safeTransfer(recipient[i], amount[i]);
             } else if (contractType[i] == 1) {
                 IERC721(tokenAddress[i]).safeTransferFrom(address(this), recipient[i], tokenId[i], "");
             } else if (contractType[i] == 2) {
