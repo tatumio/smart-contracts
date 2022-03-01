@@ -4,7 +4,13 @@
 
 **Tatum made some small changes to ERC-20 and ERC-721 contracts and modified by their needs.**
 
- * ERC-721 deployed by Tatum is [Tatum721.sol](contracts/tatum/Tatum721.sol)  
+* ERC-721 deployed by Tatum is one of the following:
+    * [Tatum721General.sol](contracts/tatum/Tatum721General.sol) - Ownable OpenSea compatible NFT standard with batch
+      mint functionalities
+    * [Tatum721Cashback.sol](contracts/tatum/Tatum721Cashback.sol) - fixed price royalty cashback forced by blockchain -
+      OpenSea not compatible
+    * [Tatum721Provenance](contracts/tatum/Tatum721Provenance.sol) - percentage based royalties forced by blockchain -
+      OpenSea not compatible
 
 **A library for secure smart contract development.** Build on a solid foundation of community-vetted code.
 

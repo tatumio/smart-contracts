@@ -5,7 +5,7 @@ const { ZERO_ADDRESS } = constants;
 
 const MarketplaceListing = artifacts.require('MarketplaceListing');
 const ERC721Mock = artifacts.require('ERC721Mock');
-const Tatum721Mock = artifacts.require('Tatum721');
+const Tatum721Mock = artifacts.require('Tatum721Cashback');
 const ERC721Provenance = artifacts.require('Tatum721Provenance');
 const ERC1155Mock = artifacts.require('ERC1155Mock');
 const ERC20Mock = artifacts.require('ERC20Mock');

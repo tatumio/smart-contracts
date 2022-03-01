@@ -1,7 +1,7 @@
 const { BN, constants, expectEvent, balance } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
-const { BigNumber } = require("ethers");
-const ERC721Mock = artifacts.require('Tatum721');
+const { BigNumber } = require('ethers');
+const ERC721Mock = artifacts.require('Tatum721Cashback');
 const ERC721 = artifacts.require('Tatum721Provenance');
 const ERC20Mock = artifacts.require('ERC20Mock');
 contract('Tatum721Provenance', async function (accounts) {

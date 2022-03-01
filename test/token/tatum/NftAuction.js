@@ -4,10 +4,10 @@ const { BigNumber } = require("ethers");
 const { ZERO_ADDRESS } = constants;
 
 const NftAuction = artifacts.require('NftAuction');
-const ERC721Mock = artifacts.require('Tatum721');
+const ERC721Mock = artifacts.require('Tatum721Cashback');
 const ERC1155Mock = artifacts.require('ERC1155Mock');
 const ERC20Mock = artifacts.require('ERC20Mock');
-const ERC721Provenance = artifacts.require('Tatum721Provenance')
+const ERC721Provenance = artifacts.require('Tatum721Provenance');
 
 contract('NftAuction', function (accounts) {
     const [a1, a2, a3, a4, a5, a6, marketOwner, seller, buyer, marketOwner1155, seller1155, buyer1155] = accounts;

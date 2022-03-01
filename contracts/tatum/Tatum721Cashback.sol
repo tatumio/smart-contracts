@@ -8,11 +8,11 @@ import "../access/AccessControlEnumerable.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/introspection/ERC2981.sol";
 
-contract Tatum721 is
-    ERC721Enumerable,
-    ERC721URIStorage,
-    ERC2981,
-    AccessControlEnumerable
+contract Tatum721Cashback is
+ERC721Enumerable,
+ERC721URIStorage,
+ERC2981,
+AccessControlEnumerable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
