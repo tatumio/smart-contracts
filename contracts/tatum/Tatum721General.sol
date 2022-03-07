@@ -88,6 +88,14 @@ contract Tatum721General is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable
         return true;
     }
 
+    function safeTransfer(address to, uint256 tokenId, bytes calldata data) public virtual {
+        super._safeTransfer(_msgSender(), to, tokenId, data);
+    }
+
+    function safeTransfer(address to, uint256 tokenId) public virtual {
+        super._safeTransfer(_msgSender(), to, tokenId, "");
+    }
+
     function _beforeTokenTransfer(address from, address to, uint256 tokenId)
     internal
     whenNotPaused
