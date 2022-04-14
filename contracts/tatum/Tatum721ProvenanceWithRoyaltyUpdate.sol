@@ -9,10 +9,10 @@ import "../token/ERC20/IERC20.sol";
 import "../utils/introspection/ERC2981.sol";
 
 contract Tatum721ProvenanceWithRoyaltyUpdate is
-ERC721Enumerable,
-ERC2981,
-ERC721URIStorage,
-AccessControlEnumerable
+    ERC721Enumerable,
+    ERC2981,
+    ERC721URIStorage,
+    AccessControlEnumerable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant ROYALTY_UPDATER_ROLE = keccak256("ROYALTY_UPDATER_ROLE");
@@ -30,18 +30,21 @@ AccessControlEnumerable
         uint256 value
     );
 
-    constructor(string memory name_, string memory symbol_, bool publicMint)
-    ERC721(name_, symbol_)
-    {
+        constructor(
+        string memory name_,
+        string memory symbol_,
+        bool publicMint
+    ) ERC721(name_, symbol_) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MINTER_ROLE, _msgSender());
         _publicMint = publicMint;
     }
+
     function royaltyInfo(uint256 tokenId, uint256 value)
-    external
-    view
-    override
-    returns (address, uint256)
+        external
+        view
+        override
+        returns (address, uint256)
     {
         uint256 result;
         uint256 cbvalue = (_cashbackValues[tokenId][0] * value) / 10000;
@@ -50,8 +53,8 @@ AccessControlEnumerable
     }
 
     function _appendTokenData(uint256 tokenId, string calldata tokenData)
-    internal
-    virtual
+        internal
+        virtual
     {
         require(
             _exists(tokenId),
@@ -75,14 +78,14 @@ AccessControlEnumerable
         );
         _customToken[tokenId] = erc20;
         return
-        mintWithTokenURI(
-            to,
-            tokenId,
-            uri,
-            recipientAddresses,
-            cashbackValues,
-            fValues
-        );
+            mintWithTokenURI(
+                to,
+                tokenId,
+                uri,
+                recipientAddresses,
+                cashbackValues,
+                fValues
+            );
     }
 
     function mintWithTokenURI(
@@ -126,14 +129,14 @@ AccessControlEnumerable
             _customToken[tokenId[i]] = erc20;
         }
         return
-        mintMultiple(
-            to,
-            tokenId,
-            uri,
-            recipientAddresses,
-            cashbackValues,
-            fValues
-        );
+            mintMultiple(
+                to,
+                tokenId,
+                uri,
+                recipientAddresses,
+                cashbackValues,
+                fValues
+            );
     }
 
     function mintMultiple(
@@ -165,39 +168,39 @@ AccessControlEnumerable
     }
 
     function supportsInterface(bytes4 interfaceId)
-    public
-    view
-    virtual
-    override(AccessControlEnumerable, ERC721, ERC721Enumerable, ERC2981)
-    returns (bool)
+        public
+        view
+        virtual
+        override(AccessControlEnumerable, ERC721, ERC721Enumerable, ERC2981)
+        returns (bool)
     {
         return super.supportsInterface(interfaceId);
     }
 
     function tokenURI(uint256 tokenId)
-    public
-    view
-    virtual
-    override(ERC721, ERC721URIStorage)
-    returns (string memory)
+        public
+        view
+        virtual
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
     {
         return ERC721URIStorage.tokenURI(tokenId);
     }
 
     function getCashbackAddress(uint256 tokenId)
-    public
-    view
-    virtual
-    returns (address)
+        public
+        view
+        virtual
+        returns (address)
     {
         return _customToken[tokenId];
     }
 
     function getTokenData(uint256 tokenId)
-    public
-    view
-    virtual
-    returns (string[] memory)
+        public
+        view
+        virtual
+        returns (string[] memory)
     {
         return _tokenData[tokenId];
     }
@@ -211,21 +214,21 @@ AccessControlEnumerable
     }
 
     function _burn(uint256 tokenId)
-    internal
-    virtual
-    override(ERC721, ERC721URIStorage)
+        internal
+        virtual
+        override(ERC721, ERC721URIStorage)
     {
         return ERC721URIStorage._burn(tokenId);
     }
 
     function tokenCashbackValues(uint256 tokenId, uint256 tokenPrice)
-    public
-    view
-    virtual
-    returns (uint256[] memory)
+        public
+        view
+        virtual
+        returns (uint256[] memory)
     {
         uint256[] memory result = _cashbackValues[tokenId];
-        for (uint i = 0; i < result.length; i++) {
+        for (uint256 i = 0; i < result.length; i++) {
             uint256 cbvalue = (result[i] * tokenPrice) / 10000;
             result[i] = _cashbackCalculator(cbvalue, _fixedValues[tokenId][i]);
         }
@@ -233,19 +236,25 @@ AccessControlEnumerable
     }
 
     function tokenCashbackRecipients(uint256 tokenId)
-    public
-    view
-    virtual
-    returns (address[] memory)
+        public
+        view
+        virtual
+        returns (address[] memory)
     {
         return _cashbackRecipients[tokenId];
     }
 
-    function updateCashbackForAuthor(uint256 tokenId, uint256 cashbackValue)
-    public
-    {
+    function updateCashbackForAuthor(
+        uint256 tokenId,
+        address author,
+        uint256 cashbackValue
+    ) public {
+        require(
+            hasRole(ROYALTY_UPDATER_ROLE, _msgSender()),
+            "ERC721PresetMinterPauserAutoId: must have ROYALTY_UPDATER_ROLE to update royalties"
+        );
         for (uint256 i; i < _cashbackValues[tokenId].length; i++) {
-            if (_cashbackRecipients[tokenId][i] == _msgSender()) {
+            if (_cashbackRecipients[tokenId][i] == author) {
                 _cashbackValues[tokenId][i] = cashbackValue;
             }
         }
@@ -261,9 +270,9 @@ AccessControlEnumerable
     }
 
     function _stringToUint(string memory s)
-    internal
-    pure
-    returns (uint256 result)
+        internal
+        pure
+        returns (uint256 result)
     {
         bytes memory b = bytes(s);
         // result = 0;
@@ -295,7 +304,7 @@ AccessControlEnumerable
         if (_cashbackRecipients[tokenId].length > 0) {
             for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
                 uint256 iPercent = (_cashbackValues[tokenId][i] * value) /
-                10000;
+                    10000;
                 if (iPercent >= _fixedValues[tokenId][i]) {
                     percentSum += iPercent;
                 } else {
@@ -306,13 +315,13 @@ AccessControlEnumerable
                 if (percentSum > msg.value) {
                     payable(msg.sender).transfer(msg.value);
                     revert(
-                    "Value should be greater than or equal to cashback value"
+                        "Value should be greater than or equal to cashback value"
                     );
                 }
             } else {
                 if (percentSum > token.allowance(to, address(this))) {
                     revert(
-                    "Insufficient ERC20 allowance balance for paying for the asset."
+                        "Insufficient ERC20 allowance balance for paying for the asset."
                     );
                 }
             }
@@ -347,7 +356,7 @@ AccessControlEnumerable
         _safeTransfer(msg.sender, to, tokenId, dataBytes);
         string calldata dataString = string(dataBytes);
         _appendTokenData(tokenId, dataString);
-        emit TransferWithProvenance(tokenId, to, dataString[: index], value);
+        emit TransferWithProvenance(tokenId, to, dataString[:index], value);
     }
 
     function safeTransferFrom(
@@ -368,7 +377,7 @@ AccessControlEnumerable
         if (_cashbackRecipients[tokenId].length > 0) {
             for (uint256 i = 0; i < _cashbackValues[tokenId].length; i++) {
                 uint256 iPercent = (_cashbackValues[tokenId][i] * value) /
-                10000;
+                    10000;
                 if (iPercent >= _fixedValues[tokenId][i]) {
                     percentSum += iPercent;
                 } else {
@@ -379,13 +388,13 @@ AccessControlEnumerable
                 if (percentSum > msg.value) {
                     payable(from).transfer(msg.value);
                     revert(
-                    "Value should be greater than or equal to cashback value"
+                        "Value should be greater than or equal to cashback value"
                     );
                 }
             } else {
                 if (percentSum > token.allowance(to, address(this))) {
                     revert(
-                    "Insufficient ERC20 allowance balance for paying for the asset."
+                        "Insufficient ERC20 allowance balance for paying for the asset."
                     );
                 }
             }
@@ -421,13 +430,13 @@ AccessControlEnumerable
         _safeTransfer(from, to, tokenId, dataBytes);
         string calldata dataString = string(dataBytes);
         _appendTokenData(tokenId, dataString);
-        emit TransferWithProvenance(tokenId, to, dataString[: index], value);
+        emit TransferWithProvenance(tokenId, to, dataString[:index], value);
     }
 
     function _cashbackCalculator(uint256 x, uint256 y)
-    private
-    pure
-    returns (uint256)
+        private
+        pure
+        returns (uint256)
     {
         if (x >= y) {
             return x;
@@ -436,9 +445,9 @@ AccessControlEnumerable
     }
 
     function _bytesCheck(bytes calldata dataBytes)
-    private
-    pure
-    returns (uint256 index, uint256 value)
+        private
+        pure
+        returns (uint256 index, uint256 value)
     {
         for (uint256 i = 0; i < dataBytes.length; i++) {
             if (
@@ -454,7 +463,7 @@ AccessControlEnumerable
                 dataBytes[i + 8] == 0x27
             ) {
                 index = i;
-                bytes calldata valueBytes = dataBytes[index + 9 :];
+                bytes calldata valueBytes = dataBytes[index + 9:];
                 value = _stringToUint(string(valueBytes));
             }
         }
