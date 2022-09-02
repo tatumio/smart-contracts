@@ -4,6 +4,7 @@ pragma solidity ^0.8.7;
 import "../../access/Ownable.sol";
 import "./CustodialWallet.sol";
 import "../../proxy/Clones.sol";
+import "hardhat/console.sol";
 
 contract CustodialWalletFactoryV2 {
 
@@ -15,6 +16,7 @@ contract CustodialWalletFactoryV2 {
 
     event WalletDetails(address addr, address owner, uint256 index);
     event Created(address addr);
+    event CreateFailed(address addr, address owner, string reason);
 
     constructor () {
         rawWallet = new CustodialWallet();
@@ -26,7 +28,11 @@ contract CustodialWalletFactoryV2 {
         exists = wallets[salt] != address(0);
     }
 
-    function getWallets(address owner, uint256[] memory index) public view returns (address[] memory addr, bool[] memory exists, bytes32[] memory salt) {
+    function getWallets(address owner, uint256[] memory index) public view returns (address[] memory _addr, bool[] memory _exists, bytes32[] memory _salt) {
+        address[] memory addr = new address[](index.length); 
+        bool[] memory exists = new bool[](index.length); 
+        bytes32[] memory salt = new bytes32[](index.length);
+        
         for (uint256 i = 0; i < index.length; i++) {
             salt[i] = keccak256(abi.encodePacked(owner, index[i]));
             addr[i] = Clones.predictDeterministicAddress(address(rawWallet), salt[i]);
@@ -35,12 +41,18 @@ contract CustodialWalletFactoryV2 {
         return (addr, exists, salt);
     }
 
-    function create(address owner, uint256[] memory index) public {
+    function createBatch(address owner, uint256[] memory index) public {
         for (uint256 i = 0; i < index.length; i++) {
             (address calculatedAddress, bool exists, bytes32 salt) = getWallet(owner, index[i]);
-            require(!exists, "Wallet already exists");
+            if(exists) {
+                emit CreateFailed(calculatedAddress, owner, "Wallet already exists");
+                continue;
+            }
             address addr = Clones.cloneDeterministic(address(rawWallet), salt);
-            require(addr == calculatedAddress, "Address doesnt match with predicted address.");
+            if(addr != calculatedAddress) {
+                emit CreateFailed(calculatedAddress, owner, "Address doesnt match with predicted address.");
+                continue;
+            }
 
             wallets[salt] = addr;
             CustodialWallet(payable(addr)).init(owner);
