@@ -105,6 +105,4 @@ describe('CustodialWalletFactoryV2 contract', ()=> {
     
         expect(await custodialWalletFactory.createBatch(owner.address, indexes2)).to.emit(custodialWalletFactory, "CreateFailed")
       });
-
-      
 });

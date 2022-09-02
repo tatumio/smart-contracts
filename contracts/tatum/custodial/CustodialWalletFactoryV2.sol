@@ -27,7 +27,7 @@ contract CustodialWalletFactoryV2 {
         exists = wallets[salt] != address(0);
     }
 
-    function getWallets(address owner, uint256[] memory index) public view returns (address[] memory _addr, bool[] memory _exists, bytes32[] memory _salt) {
+    function getWallets(address owner, uint256[] memory index) public view returns (address[] memory, bool[] memory, bytes32[] memory) {
         address[] memory addr = new address[](index.length); 
         bool[] memory exists = new bool[](index.length); 
         bytes32[] memory salt = new bytes32[](index.length);
