@@ -4,7 +4,6 @@ pragma solidity ^0.8.7;
 import "../../access/Ownable.sol";
 import "./CustodialWallet.sol";
 import "../../proxy/Clones.sol";
-import "hardhat/console.sol";
 
 contract CustodialWalletFactoryV2 {
 
