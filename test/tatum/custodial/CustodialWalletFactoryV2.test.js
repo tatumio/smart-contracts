@@ -1,13 +1,12 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const {expect, assert} = require('chai')
 const {BigNumber} = require('bignumber.js');
-
-const range = (from, to ) => to - from + 1
 
 describe('CustodialWalletFactoryV2 contract', ()=> {
     async function deployFactoryFixture() {
         const CustodialWalletFactoryV2 = await ethers.getContractFactory("CustodialWalletFactoryV2");
-        const [owner] = await ethers.getSigners();
+        const [owner, addr1, addr2] = await ethers.getSigners();
     
         const custodialWalletFactory = await CustodialWalletFactoryV2.deploy();
     
@@ -23,14 +22,13 @@ describe('CustodialWalletFactoryV2 contract', ()=> {
       });
 
 
-      it("Should generate and activate single predicted address", async function () {
+      it("Should generate and create single predicted address", async function () {
         const { custodialWalletFactory, owner } = await loadFixture(deployFactoryFixture);
         const from  = 1;
         const [addr, exists, salt] = await custodialWalletFactory.getWallet(owner.address, from);
 
         await expect(custodialWalletFactory.create(owner.address, from, {
-            gasLimit: 1000000
-        })).to.emit(custodialWalletFactory, "Created").withArgs(addr)
+            gasLimit: 1000000}))
       });
 
       it("Should revert if an address is activated a second time", async function () {
@@ -57,6 +55,7 @@ describe('CustodialWalletFactoryV2 contract', ()=> {
         const [addr, exists, salt] = await custodialWalletFactory.getWallet(owner.address, from);
 
         assert(exists)
+
       });
 
 
