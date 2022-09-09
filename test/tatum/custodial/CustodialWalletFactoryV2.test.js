@@ -8,6 +8,8 @@ describe('CustodialWalletFactoryV2 contract', ()=> {
     async function deployFactoryFixture() {
         const CustodialWalletFactoryV2 = await ethers.getContractFactory("CustodialWalletFactoryV2");
         const [owner] = await ethers.getSigners();
+
+        console.log(owner.address)
     
         const custodialWalletFactory = await CustodialWalletFactoryV2.deploy();
     
