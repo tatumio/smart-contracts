@@ -4,14 +4,14 @@ const {BigNumber} = require('bignumber.js');
 
 const range = (from, to ) => to - from + 1
 
-describe('EVMCustodialWalletFactoryV2 contract', ()=> {
+describe('TronCustodialWalletFactoryV2 contract', ()=> {
     async function deployFactoryFixture() {
-        const CustodialWalletFactoryV2 = await ethers.getContractFactory("CustodialWalletFactoryV2");
+        const TronCustodialWalletFactoryV2 = await ethers.getContractFactory("TronCustodialWalletFactoryV2");
         const [owner] = await ethers.getSigners();
 
         console.log(owner.address)
     
-        const custodialWalletFactory = await CustodialWalletFactoryV2.deploy();
+        const custodialWalletFactory = await TronCustodialWalletFactoryV2.deploy();
     
         await custodialWalletFactory.deployed();
         return { CustodialWalletFactoryV2, custodialWalletFactory, owner};
@@ -31,30 +31,7 @@ describe('EVMCustodialWalletFactoryV2 contract', ()=> {
         const [addr, exists, salt] = await custodialWalletFactory.getWallet(owner.address, from);
 
         await expect(custodialWalletFactory.create(owner.address, from, {
-            gasLimit: 1000000}))
-      });
-
-      it("Should revert if an address is activated a second time", async function () {
-        const { custodialWalletFactory, owner } = await loadFixture(deployFactoryFixture);
-        const from  = 1;
-
-        await custodialWalletFactory.create(owner.address, from, {
             gasLimit: 1000000
-        });
-
-        await expect(custodialWalletFactory.create(owner.address, from, {
-            gasLimit: 1000000
-        })).to.revertedWith("Wallet already exists")
-      });
-
-
-      it("Should exist after being activated", async function () {
-        const { custodialWalletFactory, owner } = await loadFixture(deployFactoryFixture);
-        const from  = 1;
-        const [addr, exists, salt] = await custodialWalletFactory.getWallet(owner.address, from);
-        await expect(custodialWalletFactory.create(owner.address, from, {
-            gasLimit: 1000000
-
         })).to.emit(custodialWalletFactory, "Created").withArgs(addr)
       });
 
@@ -129,6 +106,5 @@ describe('EVMCustodialWalletFactoryV2 contract', ()=> {
         const indexes2 = Array.from(Array(range(from2, to2)).keys()).map(val => `0x${new BigNumber(val + from2).toString(16)}`);
     
         expect(await custodialWalletFactory.createBatch(owner.address, indexes2)).to.emit(custodialWalletFactory, "CreateFailed")
-
       });
 });
