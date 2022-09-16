@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
-
 // SPDX-License-Identifier: MIT
+
 /**
  * @dev Interface of the ERC165 standard, as defined in the
  * https://eips.ethereum.org/EIPS/eip-165[EIP].
@@ -23,7 +23,7 @@ interface IERC165 {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Required interface of an ERC1155 compliant contract, as defined in the
  * https://eips.ethereum.org/EIPS/eip-1155[EIP].
@@ -122,7 +122,7 @@ interface IERC1155 is IERC165 {
     function safeBatchTransferFrom(address from, address to, uint256[] calldata ids, uint256[] calldata amounts, bytes calldata data) external;
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * _Available since v3.1._
  */
@@ -175,7 +175,7 @@ interface IERC1155Receiver is IERC165 {
     returns (bytes4);
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Interface of the optional ERC1155MetadataExtension interface, as defined
  * in the https://eips.ethereum.org/EIPS/eip-1155#metadata-extensions[EIP].
@@ -192,7 +192,7 @@ interface IERC1155MetadataURI is IERC1155 {
     function uri(uint256 id) external view returns (string memory);
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Collection of functions related to the address type
  */
@@ -379,7 +379,7 @@ library Address {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /*
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
@@ -402,7 +402,7 @@ abstract contract Context {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 // OpenZeppelin Contracts v4.4.1 (access/Ownable.sol)
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -474,7 +474,7 @@ abstract contract Ownable is Context {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Implementation of the {IERC165} interface.
  *
@@ -498,7 +498,7 @@ abstract contract ERC165 is IERC165 {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  *
  * @dev Implementation of the basic standard multi-token.
@@ -888,7 +888,7 @@ contract ERC1155 is Ownable, ERC165, IERC1155, IERC1155MetadataURI {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Extension of {ERC1155} that allows token holders to destroy both their
  * own tokens and those that they have been approved to use.
@@ -915,7 +915,7 @@ abstract contract ERC1155Burnable is ERC1155 {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Contract module which allows children to implement an emergency stop
  * mechanism that can be triggered by an authorized account.
@@ -1001,7 +1001,7 @@ abstract contract Pausable is Context {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev ERC1155 token with pausable token transfers, minting and burning.
  *
@@ -1037,7 +1037,7 @@ abstract contract ERC1155Pausable is ERC1155, Pausable {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev External interface of AccessControl declared to support ERC165 detection.
  */
@@ -1249,7 +1249,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Library for managing
  * https://en.wikipedia.org/wiki/Set_(abstract_data_type)[sets] of primitive
@@ -1545,7 +1545,7 @@ library EnumerableSet {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev External interface of AccessControlEnumerable declared to support ERC165 detection.
  */
@@ -1620,7 +1620,7 @@ abstract contract AccessControlEnumerable is IAccessControlEnumerable, AccessCon
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev {ERC1155} token, including:
  *
@@ -1723,7 +1723,7 @@ contract ERC1155PresetMinterPauser is Context, AccessControlEnumerable, ERC1155B
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 contract Tatum1155 is ERC1155PresetMinterPauser {
     bool _publicMint;
     constructor(string memory uri, bool publicMint) ERC1155PresetMinterPauser(uri) {

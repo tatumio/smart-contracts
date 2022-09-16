@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-
 // SPDX-License-Identifier: MIT
+
 /**
  * @dev Interface of the ERC165 standard, as defined in the
  * https://eips.ethereum.org/EIPS/eip-165[EIP].
@@ -24,7 +24,7 @@ interface IERC165 {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Required interface of an ERC721 compliant contract.
  */
@@ -149,7 +149,7 @@ interface IERC721 is IERC165 {
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external payable;
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @title ERC721 token receiver interface
  * @dev Interface for any contract that wants to support safeTransfers
@@ -168,7 +168,7 @@ interface IERC721Receiver {
     function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external returns (bytes4);
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @title ERC-721 Non-Fungible Token Standard, optional metadata extension
  * @dev See https://eips.ethereum.org/EIPS/eip-721
@@ -191,7 +191,7 @@ interface IERC721Metadata is IERC721 {
     function tokenURI(uint256 tokenId) external view returns (string memory);
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @title ERC-721 Non-Fungible Token Standard, optional enumeration extension
  * @dev See https://eips.ethereum.org/EIPS/eip-721
@@ -216,7 +216,7 @@ interface IERC721Enumerable is IERC721 {
     function tokenByIndex(uint256 index) external view returns (uint256);
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Collection of functions related to the address type
  */
@@ -403,7 +403,7 @@ library Address {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /*
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
@@ -426,7 +426,7 @@ abstract contract Context {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 // OpenZeppelin Contracts v4.4.1 (access/Ownable.sol)
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -498,7 +498,7 @@ abstract contract Ownable is Context {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev String operations.
  */
@@ -563,7 +563,7 @@ library Strings {
 
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Implementation of the {IERC165} interface.
  *
@@ -587,7 +587,7 @@ abstract contract ERC165 is IERC165 {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[ERC721] Non-Fungible Token Standard, including
  * the Metadata extension, but not including the Enumerable extension, which is available separately as
@@ -953,7 +953,7 @@ contract ERC721 is Ownable, ERC165, IERC721, IERC721Metadata {
     function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual {}
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev This implements an optional extension of {ERC721} defined in the EIP that adds
  * enumerability of all the token ids in the contract as well as all token ids owned by each
@@ -1119,7 +1119,7 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev ERC721 token with storage based token uri management.
  */
@@ -1181,7 +1181,7 @@ abstract contract ERC721URIStorage is ERC721 {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev External interface of AccessControl declared to support ERC165 detection.
  */
@@ -1393,7 +1393,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Library for managing
  * https://en.wikipedia.org/wiki/Set_(abstract_data_type)[sets] of primitive
@@ -1689,7 +1689,7 @@ library EnumerableSet {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev External interface of AccessControlEnumerable declared to support ERC165 detection.
  */
@@ -1764,7 +1764,7 @@ abstract contract AccessControlEnumerable is IAccessControlEnumerable, AccessCon
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
  */
@@ -1839,7 +1839,7 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// SPDX-License-Identifier: MIT
+
 interface IERC2981 {
     /// @notice Called with the sale price to determine how much royalty
     //          is owed and to whom.

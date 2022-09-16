@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-
 // SPDX-License-Identifier: MIT
+
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
  */
@@ -77,7 +77,7 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Interface of the ERC165 standard, as defined in the
  * https://eips.ethereum.org/EIPS/eip-165[EIP].
@@ -99,7 +99,7 @@ interface IERC165 {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Required interface of an ERC721 compliant contract.
  */
@@ -224,7 +224,7 @@ interface IERC721 is IERC165 {
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external payable;
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Required interface of an ERC1155 compliant contract, as defined in the
  * https://eips.ethereum.org/EIPS/eip-1155[EIP].
@@ -323,7 +323,7 @@ interface IERC1155 is IERC165 {
     function safeBatchTransferFrom(address from, address to, uint256[] calldata ids, uint256[] calldata amounts, bytes calldata data) external;
 }
 
-// SPDX-License-Identifier: MIT
+
 /*
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
@@ -346,7 +346,7 @@ abstract contract Context {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
@@ -411,7 +411,7 @@ abstract contract Ownable is Context {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 /**
  * @dev Collection of functions related to the address type
  */
@@ -598,7 +598,7 @@ library Address {
     }
 }
 
-// SPDX-License-Identifier: MIT
+
 contract Tatum {
     function tokenCashbackValues(uint256 tokenId, uint256 tokenPrice)
     public
