@@ -9,6 +9,8 @@ contract TronCustodialWalletFactoryV2 {
 
     using Clones for TronCustodialWalletFactoryV2;
 
+    uint256 private constant _MAX_ARRAY_BOUNDS = 10000;
+
     TronCustodialWallet private _rawWallet;
 
     mapping(bytes32 => address) public wallets;
@@ -27,7 +29,8 @@ contract TronCustodialWalletFactoryV2 {
         exists = wallets[salt] != address(0);
     }
 
-    function getWallets(address owner, uint256[] memory index) public view returns (address[] memory, bool[] memory, bytes32[] memory) {
+    function getWallets(address owner, uint256[] memory index) external view returns (address[] memory, bool[] memory, bytes32[] memory) {
+        require(index.length <= _MAX_ARRAY_BOUNDS, "Maximum allowable size of array has been exceeded");
         address[] memory addr = new address[](index.length); 
         bool[] memory exists = new bool[](index.length); 
         bytes32[] memory salt = new bytes32[](index.length);
@@ -40,7 +43,7 @@ contract TronCustodialWalletFactoryV2 {
         return (addr, exists, salt);
     }
 
-    function createBatch(address owner, uint256[] memory index) public {
+    function createBatch(address owner, uint256[] memory index) external {
         for (uint256 i = 0; i < index.length; i++) {
             (address calculatedAddress, bool exists, bytes32 salt) = getWallet(owner, index[i]);
             if(exists) {
@@ -60,7 +63,7 @@ contract TronCustodialWalletFactoryV2 {
         }
     }
 
-    function create(address owner, uint256 index) public {
+    function create(address owner, uint256 index) external {
         (address calculatedAddress, bool exists, bytes32 salt) = getWallet(owner, index);
         require(!exists, "Wallet already exists");
         address addr = Clones.cloneDeterministic(address(_rawWallet), salt);
