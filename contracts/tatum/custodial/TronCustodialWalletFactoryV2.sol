@@ -9,7 +9,8 @@ contract TronCustodialWalletFactoryV2 {
 
     using Clones for TronCustodialWalletFactoryV2;
 
-    uint256 private constant _MAX_ARRAY_BOUNDS = 1500;
+    uint256 private constant _MAX_ARRAY_BOUNDS = 2000;
+    uint256 private constant _MAX_ARRAY_CALCULATE_BOUNDS = 10_000;
 
     TronCustodialWallet private _rawWallet;
 
@@ -30,7 +31,7 @@ contract TronCustodialWalletFactoryV2 {
     }
 
     function getWallets(address owner, uint256[] memory index) external view returns (address[] memory, bool[] memory, bytes32[] memory) {
-        require(index.length <= _MAX_ARRAY_BOUNDS, "Maximum allowable size of array has been exceeded");
+        require(index.length <= _MAX_ARRAY_CALCULATE_BOUNDS, "Maximum allowable size of array has been exceeded");
         address[] memory addr = new address[](index.length); 
         bool[] memory exists = new bool[](index.length); 
         bytes32[] memory salt = new bytes32[](index.length);
@@ -44,6 +45,7 @@ contract TronCustodialWalletFactoryV2 {
     }
 
     function createBatch(address owner, uint256[] memory index) external {
+        require(index.length <= _MAX_ARRAY_BOUNDS, "Maximum allowable size of array has been exceeded");
         for (uint256 i = 0; i < index.length; i++) {
             (address calculatedAddress, bool exists, bytes32 salt) = getWallet(owner, index[i]);
             if(exists) {
