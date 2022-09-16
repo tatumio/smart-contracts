@@ -9,6 +9,9 @@ contract CustodialWalletFactoryV2 {
 
     using Clones for CustodialWalletFactoryV2;
 
+    uint256 private constant _MAX_ARRAY_BOUNDS = 2000;
+    uint256 private constant _MAX_ARRAY_CALCULATE_BOUNDS = 10_000;
+
     CustodialWallet private rawWallet;
 
     mapping(bytes32 => address) public wallets;
@@ -27,7 +30,8 @@ contract CustodialWalletFactoryV2 {
         exists = wallets[salt] != address(0);
     }
 
-    function getWallets(address owner, uint256[] memory index) public view returns (address[] memory, bool[] memory, bytes32[] memory) {
+    function getWallets(address owner, uint256[] memory index) external view returns (address[] memory, bool[] memory, bytes32[] memory) {
+        require(index.length <= _MAX_ARRAY_CALCULATE_BOUNDS, "Maximum allowable size of array has been exceeded");
         address[] memory addr = new address[](index.length); 
         bool[] memory exists = new bool[](index.length); 
         bytes32[] memory salt = new bytes32[](index.length);
@@ -40,7 +44,8 @@ contract CustodialWalletFactoryV2 {
         return (addr, exists, salt);
     }
 
-    function createBatch(address owner, uint256[] memory index) public {
+    function createBatch(address owner, uint256[] memory index) external {
+        require(index.length <= _MAX_ARRAY_BOUNDS, "Maximum allowable size of array has been exceeded");
         for (uint256 i = 0; i < index.length; i++) {
             (address calculatedAddress, bool exists, bytes32 salt) = getWallet(owner, index[i]);
             if(exists) {
@@ -60,7 +65,7 @@ contract CustodialWalletFactoryV2 {
         }
     }
 
-    function create(address owner, uint256 index) public {
+    function create(address owner, uint256 index) external {
         (address calculatedAddress, bool exists, bytes32 salt) = getWallet(owner, index);
         require(!exists, "Wallet already exists");
         address addr = Clones.cloneDeterministic(address(rawWallet), salt);
