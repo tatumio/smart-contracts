@@ -9,7 +9,7 @@ contract CustodialWalletFactoryV2 {
 
     using Clones for CustodialWalletFactoryV2;
 
-    uint256 private constant _MAX_ARRAY_BOUNDS = 10000;
+    uint256 private constant _MAX_ARRAY_BOUNDS = 1500;
 
     CustodialWallet private rawWallet;
 

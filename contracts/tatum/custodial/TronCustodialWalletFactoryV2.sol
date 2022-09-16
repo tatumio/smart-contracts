@@ -9,7 +9,7 @@ contract TronCustodialWalletFactoryV2 {
 
     using Clones for TronCustodialWalletFactoryV2;
 
-    uint256 private constant _MAX_ARRAY_BOUNDS = 10000;
+    uint256 private constant _MAX_ARRAY_BOUNDS = 1500;
 
     TronCustodialWallet private _rawWallet;
 
