@@ -7,6 +7,7 @@
 * ERC-721 deployed by Tatum is one of the following:
     * [Tatum721General.sol](contracts/tatum/Tatum721General.sol) - Ownable OpenSea compatible NFT standard with batch
       mint functionalities
+        * for Tron: [TatumTron721.sol](contracts/tatum/TatumTron721.sol)
     * [Tatum721Cashback.sol](contracts/tatum/Tatum721Cashback.sol) - fixed price royalty cashback forced by blockchain -
       OpenSea not compatible
     * [Tatum721Provenance](contracts/tatum/Tatum721Provenance.sol) - percentage based royalties forced by blockchain -
@@ -36,7 +37,6 @@ Single file, MIT licensed
 * For ERC1155 contract, use [Tatum1155.sol](./verification/Tatum1155.sol)
 * For NFT Auction contract, use [NftAuction.sol](./verification/NftAuction.sol)
 * For NFT Marketplace contract, use [MarketplaceListing.sol](./verification/MarketplaceListing.sol)
-*
 
 ## License
 
