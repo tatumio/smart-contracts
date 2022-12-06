@@ -18,7 +18,7 @@ In order to verify the smart contracts deployed using Tatum API, use the followi
 
 #### Compiler version
 
-0.8.7
+0.8.7 for EVM chains 0.5.5 or 0.6.12 for TRON
 
 ### Enable optimization
 
@@ -31,6 +31,7 @@ Single file, MIT licensed
 ### Contract sources
 
 * For ERC721 general contract, use [Tatum721General.sol](./verification/Tatum721General.sol)
+* For ERC721 TRON general contract, use [TatumTron721.sol](./verification/TatumTron721.sol)
 * For ERC721 provenance contract, use [Tatum721Provenance.sol](./verification/Tatum721Provenance.sol)
 * For ERC721 cashback contract, use [Tatum721Cashback.sol](./verification/Tatum721Cashback.sol)
 * For ERC1155 contract, use [Tatum1155.sol](./verification/Tatum1155.sol)
