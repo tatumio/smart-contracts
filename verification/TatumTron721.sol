@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.18;
 pragma experimental ABIEncoderV2;
 
 // SPDX-License-Identifier: MIT
@@ -220,7 +220,6 @@ library Roles {
         return role.bearer[account];
     }
 }
-pragma solidity ^0.5.5;
 
 /**
  * @dev Collection of functions related to the address type
