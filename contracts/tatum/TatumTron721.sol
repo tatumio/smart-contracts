@@ -1,5 +1,5 @@
-pragma solidity ^0.5.0;
-pragma experimental ABIEncoderV2;
+//pragma solidity ^0.5.0;
+//pragma experimental ABIEncoderV2;
 ///**
 // * @dev Wrappers over Solidity's arithmetic operations with added overflow
 // * checks.
@@ -216,6 +216,64 @@ pragma experimental ABIEncoderV2;
 //    }
 //}
 //pragma solidity ^0.5.5;
+//
+//abstract contract Ownable is Context {
+//    address private _owner;
+//
+//    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+//
+//    /**
+//     * @dev Initializes the contract setting the deployer as the initial owner.
+//     */
+//    constructor() {
+//        _transferOwnership(_msgSender());
+//    }
+//
+//    /**
+//     * @dev Returns the address of the current owner.
+//     */
+//    function owner() public view virtual returns (address) {
+//        return _owner;
+//    }
+//
+//    /**
+//     * @dev Throws if called by any account other than the owner.
+//     */
+//    modifier onlyOwner() {
+//        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+//        _;
+//    }
+//
+//    /**
+//     * @dev Leaves the contract without owner. It will not be possible to call
+//     * `onlyOwner` functions anymore. Can only be called by the current owner.
+//     *
+//     * NOTE: Renouncing ownership will leave the contract without an owner,
+//     * thereby removing any functionality that is only available to the owner.
+//     */
+//    function renounceOwnership() public virtual onlyOwner {
+//        _transferOwnership(address(0));
+//    }
+//
+//    /**
+//     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+//     * Can only be called by the current owner.
+//     */
+//    function transferOwnership(address newOwner) public virtual onlyOwner {
+//        require(newOwner != address(0), "Ownable: new owner is the zero address");
+//        _transferOwnership(newOwner);
+//    }
+//
+//    /**
+//     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+//     * Internal function without access restriction.
+//     */
+//    function _transferOwnership(address newOwner) internal virtual {
+//        address oldOwner = _owner;
+//        _owner = newOwner;
+//        emit OwnershipTransferred(oldOwner, newOwner);
+//    }
+//}
 //
 ///**
 // * @dev Collection of functions related to the address type
@@ -487,7 +545,7 @@ pragma experimental ABIEncoderV2;
 ///**
 // * @title TRC721 Non-Fungible Token Standard basic implementation
 // */
-//contract TRC721 is Context, TRC165, ITRC721, MinterRole {
+//contract TRC721 is Context, TRC165, ITRC721, MinterRole, Ownable {
 //    using SafeMath for uint256;
 //    using Address for address;
 //    using Counters for Counters.Counter;
@@ -526,7 +584,7 @@ pragma experimental ABIEncoderV2;
 //     */
 //    bytes4 private constant _INTERFACE_ID_TRC721 = 0x80ac58cd;
 //
-//    constructor () public {
+//    constructor () Ownable() public {
 //        // register the supported interfaces to conform to TRC721 via TRC165
 //        _registerInterface(_INTERFACE_ID_TRC721);
 //    }
@@ -1240,7 +1298,7 @@ pragma experimental ABIEncoderV2;
 //    constructor(string memory name, string memory symbol) public TRC721Metadata(name, symbol) {
 //
 //    }
-//    
+//
 //    function burn(uint256 tokenId) public {
 //        return super._burn(_msgSender(), tokenId);
 //    }
