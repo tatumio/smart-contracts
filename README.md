@@ -18,7 +18,6 @@ In order to verify the smart contracts deployed using Tatum API, use the followi
 
 #### Compiler version
 
-* **0.5.17+commit.d19bba13 for ERC20 token on EVM chains**
 * **0.8.18+commit.87f61d96 for ERC20, ERC721 EVM chains**
 * **0.8.7+commit.e28d00a7 for ERC1155, NFT Auction and NFT Marketplace EVM chains**
 * **tron_v0.5.18+commit.6124c56 for TRON**
