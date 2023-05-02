@@ -20,7 +20,8 @@ In order to verify the smart contracts deployed using Tatum API, use the followi
 
 * **0.8.18+commit.87f61d96 for ERC20, ERC721 EVM chains**
 * **0.8.7+commit.e28d00a7 for ERC1155, NFT Auction and NFT Marketplace EVM chains**
-* **tron_v0.5.18+commit.6124c56 for TRON**
+* **tron_v0.8.18+commit.f18bedfe for TRC-20**
+* **tron_v0.5.18+commit.6124c56 for TRC-721**
 
 ### Enable optimization
 
@@ -34,7 +35,8 @@ Single file, MIT licensed
 
 * For ERC20 contract, use [TatumErc20CappedToken.sol](./verification/TatumErc20CappedToken.sol)
 * For ERC721 general contract, use [Tatum721General.sol](./verification/Tatum721General.sol)
-* For ERC721 TRON general contract, use [TatumTron721.sol](./verification/TatumTron721.sol)
+* For TRC-20 TRON contract, use [TatumErc20CappedToken.sol](./verification/TatumErc20CappedToken.sol)
+* For TRC-721 TRON general contract, use [TatumTron721.sol](./verification/TatumTron721.sol)
 * For ERC1155 contract, use [Tatum1155.sol](./verification/Tatum1155.sol)
 * For NFT Auction contract, use [NftAuction.sol](./verification/NftAuction.sol)
 * For NFT Marketplace contract, use [MarketplaceListing.sol](./verification/MarketplaceListing.sol)
